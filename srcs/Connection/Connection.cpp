@@ -17,14 +17,14 @@ Connection &Connection::operator=(Connection const &conn)
 	return *this;
 }
 
-bool Connection::SetURL(std::string url)
+int Connection::SetURL(std::string url)
 {
-	// url parse 
-	// dns parse
-	std::cout << url << std::endl;
+	int error;
+
 	parseURL(url);
-	
-	return true;
+	error = parseDNS();
+
+	return error;
 }
 
 void Connection::SetMethod(Method method)
@@ -32,7 +32,7 @@ void Connection::SetMethod(Method method)
 	_request._method = method;
 }
 
-bool Connection::parseURL(std::string url)
+void Connection::parseURL(std::string url)
 {
 	size_t cursor;
 
@@ -43,7 +43,28 @@ bool Connection::parseURL(std::string url)
 		_schema = !url.compare(cursor, strlen("http://"), "http://") ? Schema::HTTP : Schema::HTTPS;
 		cursor += _schema == Schema::HTTP ? strlen("http://") : strlen("https://");
 	}
-	//_request = url.substr(cursor, url.find("/", cursor) - cursor);
-	std::cout << url.substr(cursor, url.find("/", cursor) - cursor) << std::endl;
-	return true;
+	_request.GetHeader()["Host"] = url.substr(cursor, url.find("/", cursor) - cursor);
+	cursor += _request.GetHeader()["Host"].length();
+	_request._path = url.substr(cursor);
+	if (_request._path.empty())
+		_request._path = "/";
+}
+
+int Connection::parseDNS()
+{
+	struct addrinfo hints = {
+		.ai_family = AF_INET
+	};
+	struct addrinfo *result;
+	char buffer[32];
+
+	if (getaddrinfo(_request.GetHeader()["Host"].c_str(), NULL, &hints, &result))
+	{
+		return INVALID_NAMESERVER;
+	}
+
+	_address.sin_addr.s_addr = ((struct sockaddr_in *) result->ai_addr)->sin_addr.s_addr;
+	freeaddrinfo(result);
+
+	return NO_ERROR;
 }

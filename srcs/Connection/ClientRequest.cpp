@@ -24,3 +24,8 @@ ClientRequest &ClientRequest::operator=(ClientRequest const &req)
 {
 	return *this;
 }
+
+std::map<std::string, std::string> &ClientRequest::GetHeader()
+{
+	return _header;
+}

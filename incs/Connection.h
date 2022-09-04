@@ -7,6 +7,8 @@
 # include "ClientRequest.h"
 # include "ClientResponse.h"
 # include <netinet/in.h>
+# include <arpa/inet.h>
+# include <netdb.h>
 
 class Connection
 {
@@ -17,7 +19,7 @@ public:
 
 	Connection &operator=(Connection const &conn);
 
-	bool SetURL(std::string url);
+	int SetURL(std::string url);
 	void SetMethod(Method method);
 	bool Connect();
 
@@ -32,7 +34,8 @@ private:
 	ClientRequest _request;
 	ClientResponse _response;
 
-	bool parseURL(std::string url);
+	void parseURL(std::string url);
+	int parseDNS();
 };
 
 #endif

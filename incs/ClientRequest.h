@@ -16,6 +16,8 @@ public:
 
 	ClientRequest &operator=(ClientRequest const &req);
 
+	std::map<std::string, std::string> &GetHeader();
+
 private:
 	Method _method;
 	std::string _path;
