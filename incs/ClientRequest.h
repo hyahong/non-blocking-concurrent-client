@@ -10,12 +10,14 @@ class ClientRequest
 	friend class Connection;
 
 public:
+	/* coplien */
 	ClientRequest();
 	ClientRequest(ClientRequest const &req);
 	virtual ~ClientRequest();
 
 	ClientRequest &operator=(ClientRequest const &req);
 
+	/* function */
 	std::map<std::string, std::string> &GetHeader();
 
 private:
@@ -23,6 +25,7 @@ private:
 	std::string _path;
 	std::string _version;
 
+	/* function */
 	std::map<std::string, std::string> _header;
 };
 

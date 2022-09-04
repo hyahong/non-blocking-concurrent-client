@@ -13,13 +13,21 @@
 class Connection
 {
 public:
+	/* coplien */
 	Connection();
 	Connection(Connection const &conn);
 	virtual ~Connection();
 
 	Connection &operator=(Connection const &conn);
 
-	int SetURL(std::string url);
+	/* exception */
+	class InvalidNameServer : public std::exception
+	{
+		virtual const char *what() const throw();
+	};
+
+	/* function */
+	void SetURL(std::string url);
 	void SetMethod(Method method);
 	bool Connect();
 
@@ -34,8 +42,9 @@ private:
 	ClientRequest _request;
 	ClientResponse _response;
 
+	/* function */
 	void parseURL(std::string url);
-	int parseDNS();
+	void parseDNS();
 };
 
 #endif

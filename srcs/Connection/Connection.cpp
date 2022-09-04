@@ -1,5 +1,11 @@
 #include "Connection.h"
 
+/* exception */
+const char *Connection::InvalidNameServer::what() const throw() {
+	return ("Connection: Name or service not known");
+}
+
+/* coplien */
 Connection::Connection()
 {
 }
@@ -17,14 +23,11 @@ Connection &Connection::operator=(Connection const &conn)
 	return *this;
 }
 
-int Connection::SetURL(std::string url)
+/* public */
+void Connection::SetURL(std::string url)
 {
-	int error;
-
 	parseURL(url);
-	error = parseDNS();
-
-	return error;
+	parseDNS();
 }
 
 void Connection::SetMethod(Method method)
@@ -32,6 +35,7 @@ void Connection::SetMethod(Method method)
 	_request._method = method;
 }
 
+/* private */
 void Connection::parseURL(std::string url)
 {
 	size_t cursor;
@@ -50,7 +54,7 @@ void Connection::parseURL(std::string url)
 		_request._path = "/";
 }
 
-int Connection::parseDNS()
+void Connection::parseDNS()
 {
 	struct addrinfo hints = {
 		.ai_family = AF_INET
@@ -60,11 +64,9 @@ int Connection::parseDNS()
 
 	if (getaddrinfo(_request.GetHeader()["Host"].c_str(), NULL, &hints, &result))
 	{
-		return INVALID_NAMESERVER;
+		throw InvalidNameServer();
 	}
 
 	_address.sin_addr.s_addr = ((struct sockaddr_in *) result->ai_addr)->sin_addr.s_addr;
 	freeaddrinfo(result);
-
-	return NO_ERROR;
 }

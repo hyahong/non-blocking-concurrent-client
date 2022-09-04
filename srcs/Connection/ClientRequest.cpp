@@ -1,5 +1,6 @@
 #include "ClientRequest.h"
 
+/* coplien */
 ClientRequest::ClientRequest() :
 	_method(Method::GET),
 	_path(""),
@@ -25,6 +26,7 @@ ClientRequest &ClientRequest::operator=(ClientRequest const &req)
 	return *this;
 }
 
+/* public */
 std::map<std::string, std::string> &ClientRequest::GetHeader()
 {
 	return _header;
