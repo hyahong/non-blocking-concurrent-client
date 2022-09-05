@@ -6,6 +6,7 @@
 # include "TLSSocket.h"
 # include "ClientRequest.h"
 # include "ClientResponse.h"
+# include <unistd.h>
 # include <netinet/in.h>
 # include <arpa/inet.h>
 # include <netdb.h>
@@ -53,6 +54,12 @@ public:
 	void SetURL(std::string url);
 	void SetMethod(Method method);
 	void Connect();
+
+	std::string GetReqeustStringHeader();
+
+	/* I/O */
+	ssize_t write(const void *buf, size_t count);
+	ssize_t read(void *buf, size_t count);
 
 private:
 	int _socket;

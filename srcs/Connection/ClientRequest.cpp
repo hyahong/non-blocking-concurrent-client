@@ -31,3 +31,31 @@ std::map<std::string, std::string> &ClientRequest::GetHeader()
 {
 	return _header;
 }
+
+std::string ClientRequest::GetStringHeader()
+{
+	std::string header;
+
+	header = "";
+	header += methodToString(_method) + " " + _path + " " + _version + "\r\n";
+	for (std::map<std::string, std::string>::iterator it = _header.begin(); it != _header.end(); ++it)
+		header += it->first + ": " + it->second + "\r\n";
+	header += "\r\n";
+
+	return header;
+}
+
+/* private */
+std::string ClientRequest::methodToString(Method m)
+{
+	switch (m)
+	{
+		case Method::GET:
+			return "GET";
+
+		case Method::HEAD:
+			return "HEAD";
+	}
+
+	return "";
+}

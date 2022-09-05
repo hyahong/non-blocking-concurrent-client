@@ -76,6 +76,30 @@ void Connection::Connect()
 		useTLS();
 }
 
+std::string Connection::GetReqeustStringHeader()
+{
+	return _request.GetStringHeader();
+}
+
+/* I/O */
+ssize_t Connection::write(const void *buf, size_t count)
+{
+	if (_schema == Schema::HTTP)
+		return ::write(_socket, buf, count);
+	if (_schema == Schema::HTTPS)
+		return SSL_write(_tls._ssl, buf, count);
+	return -1;
+}
+
+ssize_t Connection::read(void *buf, size_t count)
+{
+	if (_schema == Schema::HTTP)
+		return ::read(_socket, buf, count);
+	if (_schema == Schema::HTTPS)
+		return SSL_read(_tls._ssl, buf, count);
+	return -1;
+}
+
 /* private */
 void Connection::parseURL(std::string url)
 {

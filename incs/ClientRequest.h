@@ -19,6 +19,7 @@ public:
 
 	/* function */
 	std::map<std::string, std::string> &GetHeader();
+	std::string GetStringHeader();
 
 private:
 	Method _method;
@@ -28,6 +29,7 @@ private:
 	std::map<std::string, std::string> _header;
 
 	/* function */
+	std::string methodToString(Method m);
 };
 
 #endif
