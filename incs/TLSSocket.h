@@ -5,12 +5,14 @@
 
 class TLSSocket
 {
-public:
-	SSL_CTX * ctx;
-	SSL_METHOD * method;
-	char * subject;
-	char * issuer;
-	SSL * ssl;
+	friend class Connection;
+
+private:
+	SSL_CTX *_ctx;
+	SSL_METHOD *_method;
+	char *_subject;
+	char *_issuer;
+	SSL *_ssl;
 };
 
 #endif

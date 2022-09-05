@@ -21,15 +21,38 @@ public:
 	Connection &operator=(Connection const &conn);
 
 	/* exception */
-	class InvalidNameServer : public std::exception
-	{
+	class InvalidNameServer : public std::exception {
+		virtual const char *what() const throw();
+	};
+
+	class ConnectionFailure : public std::exception {
+		virtual const char *what() const throw();
+	};
+
+	class CTXAllocationFailure : public std::exception {
+		virtual const char *what() const throw();
+	};
+
+	class SSLAllocationFailure : public std::exception {
+		virtual const char *what() const throw();
+	};
+
+	class FailureToUseSNI : public std::exception {
+		virtual const char *what() const throw();
+	};
+
+	class FailureToSetFD : public std::exception {
+		virtual const char *what() const throw();
+	};
+
+	class ConnectSSLFailure : public std::exception {
 		virtual const char *what() const throw();
 	};
 
 	/* function */
 	void SetURL(std::string url);
 	void SetMethod(Method method);
-	bool Connect();
+	void Connect();
 
 private:
 	int _socket;
@@ -45,6 +68,8 @@ private:
 	/* function */
 	void parseURL(std::string url);
 	void parseDNS();
+
+	void useTLS();
 };
 
 #endif

@@ -25,8 +25,9 @@ private:
 	std::string _path;
 	std::string _version;
 
-	/* function */
 	std::map<std::string, std::string> _header;
+
+	/* function */
 };
 
 #endif
