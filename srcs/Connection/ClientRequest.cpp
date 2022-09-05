@@ -4,7 +4,10 @@
 ClientRequest::ClientRequest() :
 	_method(Method::GET),
 	_path(""),
-	_version("HTTP/1.1")
+	_version("HTTP/1.1"),
+	_buffer(nullptr),
+	_offset(0),
+	_size(0)
 {
 	_header.insert({ "Host", "" });
 	_header.insert({ "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36" });
@@ -19,6 +22,8 @@ ClientRequest::ClientRequest(ClientRequest const &req)
 
 ClientRequest::~ClientRequest()
 {
+	if (_buffer)
+		delete[] _buffer;
 }
 
 ClientRequest &ClientRequest::operator=(ClientRequest const &req)

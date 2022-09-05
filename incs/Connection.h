@@ -55,7 +55,8 @@ public:
 	void SetMethod(Method method);
 	void Connect();
 
-	std::string GetReqeustStringHeader();
+	ClientRequest &GetRequest();
+	ClientResponse &GetResponse();
 
 	/* I/O */
 	ssize_t write(const void *buf, size_t count);

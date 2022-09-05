@@ -4,7 +4,7 @@ RM			= rm -rf
 
 INCS		= incs
 SRCS		= srcs/main.cpp \
-			  srcs/Connection/Connection.cpp srcs/Connection/ClientRequest.cpp
+			  srcs/Connection/Connection.cpp srcs/Connection/ClientRequest.cpp srcs/Connection/ClientResponse.cpp
 LIBS		= -lssl -lcrypto
 
 OBJS		= $(patsubst %.cpp,%.o,$(SRCS))

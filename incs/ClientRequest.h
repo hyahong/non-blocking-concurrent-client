@@ -28,6 +28,11 @@ private:
 
 	std::map<std::string, std::string> _header;
 
+	char *_buffer;
+
+	unsigned long long int _offset;
+	unsigned long long int _size;
+
 	/* function */
 	std::string methodToString(Method m);
 };

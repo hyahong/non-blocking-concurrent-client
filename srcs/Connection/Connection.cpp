@@ -76,9 +76,14 @@ void Connection::Connect()
 		useTLS();
 }
 
-std::string Connection::GetReqeustStringHeader()
+ClientRequest &Connection::GetRequest()
 {
-	return _request.GetStringHeader();
+	return _request;
+}
+
+ClientResponse &Connection::GetResponse()
+{
+	return _response;
 }
 
 /* I/O */
