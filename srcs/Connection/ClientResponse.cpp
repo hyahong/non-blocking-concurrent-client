@@ -1,5 +1,4 @@
 #include "ClientResponse.h"
-#include <iostream>
 
 /* coplien */
 ClientResponse::ClientResponse() :
@@ -34,6 +33,8 @@ ClientResponse &ClientResponse::operator=(ClientResponse const &res)
 /* public */
 void ClientResponse::Receive(char *buf, size_t count)
 {
+	char *pos;
+
 	if (_offset + count >= _bufferSize)
 		expandBuffer(_offset + count);
 	for (int i = 0; i < count; i++)
@@ -41,15 +42,19 @@ void ClientResponse::Receive(char *buf, size_t count)
 	_offset += count;
 	_buffer[_offset] = 0;
 
+	if (_flag)
+	{
+		/* body */
+	}
 	if (!_flag && isHeaderCompleted())
 	{
-		parseHeader(strstr(_buffer, "\r\n\r\n") - _buffer + 2);
-		for (std::map<std::string, std::string>::iterator it = _header.begin(); it != _header.end(); it++)
-		{
-			std::cout << it->first << " : " << it->second << std::endl;
-		}
-		std::cout << _header.size() << std::endl;
-		//remainder to body
+		/* header */
+		pos = strstr(_buffer, "\r\n\r\n");
+		parseHeader(pos - _buffer + 2);
+		for (int i = 0; i < count - (pos - _buffer + 4); i++)
+			_buffer[i] = _buffer[pos - _buffer + 4 + i] ;
+		_offset = count - (pos - _buffer + 4);
+		_buffer[_offset] = 0;
 		_flag = true;
 	}
 }
@@ -100,7 +105,10 @@ void ClientResponse::parseHeader(size_t size)
 
 void ClientResponse::parseStatus(char *line)
 {
-	std::cout << line << std::endl;
+	line[8] = line[12] = 0;
+	_version = line;
+	_code = line + 9;
+	_status = line + 13;
 }
 
 void ClientResponse::parsePairHeader(char *line)
@@ -116,6 +124,5 @@ void ClientResponse::parsePairHeader(char *line)
 			break;
 		}
 	}
-	std::cout << line <<":"<< second << std::endl;
 	_header.insert({ line, second });
 }
