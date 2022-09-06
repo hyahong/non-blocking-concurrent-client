@@ -20,6 +20,12 @@ public:
 	/* function */
 	std::map<std::string, std::string> &GetHeader();
 	std::string GetStringHeader();
+	bool IsWriteDone();
+
+	void SetBuffer(std::string buf);
+	char *GetOffset();
+	size_t GetRemainder();
+	void Send(unsigned long long int offset);
 
 private:
 	Method _method;

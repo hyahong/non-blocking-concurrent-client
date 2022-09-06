@@ -76,6 +76,22 @@ void Connection::Connect()
 		useTLS();
 }
 
+void Connection::Close()
+{
+	::close(_socket);
+	if (_schema == Schema::HTTPS)
+	{
+		if (_tls._subject)
+			free(_tls._subject);
+		if (_tls._issuer)
+			free(_tls._issuer);
+		if (_tls._ssl)
+			SSL_free(_tls._ssl);
+		if (_tls._ctx)
+			SSL_CTX_free(_tls._ctx);
+	}
+}
+
 ClientRequest &Connection::GetRequest()
 {
 	return _request;

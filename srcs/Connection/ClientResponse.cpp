@@ -29,7 +29,7 @@ ClientResponse &ClientResponse::operator=(ClientResponse const &res)
 {
 	return *this;
 }
-
+#include <iostream>
 /* public */
 void ClientResponse::Receive(char *buf, size_t count)
 {
@@ -51,12 +51,37 @@ void ClientResponse::Receive(char *buf, size_t count)
 		/* header */
 		pos = strstr(_buffer, "\r\n\r\n");
 		parseHeader(pos - _buffer + 2);
-		for (int i = 0; i < count - (pos - _buffer + 4); i++)
-			_buffer[i] = _buffer[pos - _buffer + 4 + i] ;
-		_offset = count - (pos - _buffer + 4);
+		for (int i = 0; i < _offset - (pos - _buffer + 4); i++)
+			_buffer[i] = _buffer[pos - _buffer + 4 + i];
+		_offset = _offset - (pos - _buffer + 4);
 		_buffer[_offset] = 0;
 		_flag = true;
 	}
+}
+
+bool ClientResponse::IsHeaderCompleted()
+{
+	return _flag;
+}
+
+std::string ClientResponse::GetVersion()
+{
+	return _version;
+}
+
+std::string ClientResponse::GetCode()
+{
+	return _code;
+}
+
+std::string ClientResponse::GetStatus()
+{
+	return _status;
+}
+
+std::map<std::string, std::string> &ClientResponse::GetHeader()
+{
+	return _header;
 }
 
 /* private */

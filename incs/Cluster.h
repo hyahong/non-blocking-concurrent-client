@@ -1,6 +1,7 @@
 #ifndef _CLUSTER_H_
 # define _CLUSTER_H_
 
+# include "Connection.h"
 # include "FileBlock.h"
 
 class Cluster

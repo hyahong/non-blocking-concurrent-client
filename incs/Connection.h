@@ -54,6 +54,7 @@ public:
 	void SetURL(std::string url);
 	void SetMethod(Method method);
 	void Connect();
+	void Close();
 
 	ClientRequest &GetRequest();
 	ClientResponse &GetResponse();

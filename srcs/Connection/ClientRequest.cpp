@@ -50,6 +50,35 @@ std::string ClientRequest::GetStringHeader()
 	return header;
 }
 
+bool ClientRequest::IsWriteDone()
+{
+	return _offset >= _size;
+}
+
+void ClientRequest::SetBuffer(std::string buf)
+{
+	_buffer = new char[buf.length()];
+	for (int i = 0; i < buf.length(); ++i)
+		_buffer[i] = buf[i];
+	_offset = 0;
+	_size = buf.length();
+}
+
+char *ClientRequest::GetOffset()
+{
+	return _buffer + _offset;
+}
+
+size_t ClientRequest::GetRemainder()
+{
+	return _size - _offset;
+}
+
+void ClientRequest::Send(unsigned long long int offset)
+{
+	_offset += offset;
+}
+
 /* private */
 std::string ClientRequest::methodToString(Method m)
 {

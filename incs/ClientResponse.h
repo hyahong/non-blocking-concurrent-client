@@ -20,6 +20,13 @@ public:
 
 	/* function */
 	void Receive(char *buf, size_t count);
+	bool IsHeaderCompleted();
+
+	std::string GetVersion();
+	std::string GetCode();
+	std::string GetStatus();
+
+	std::map<std::string, std::string> &GetHeader();
 
 private:
 	bool _flag;
