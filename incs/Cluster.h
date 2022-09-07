@@ -24,6 +24,14 @@ public:
 		virtual const char *what() const throw();
 	};
 
+	class WriteFailure : public std::exception {
+		virtual const char *what() const throw();
+	};
+
+	class ReadFailure : public std::exception {
+		virtual const char *what() const throw();
+	};
+
 	/* function */
 	void Download(std::string url, std::string path);
 

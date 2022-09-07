@@ -9,6 +9,14 @@ const char *Cluster::FailedToSetOffset::what() const throw() {
 	return ("Cluster: Failed to set the offset");
 }
 
+const char *Cluster::WriteFailure::what() const throw() {
+	return ("Cluster: Failed to set the offset");
+}
+
+const char *Cluster::ReadFailure::what() const throw() {
+	return ("Cluster: Failed to set the offset");
+}
+
 /* coplien */
 Cluster::Cluster()
 {
@@ -49,12 +57,14 @@ void Cluster::Download(std::string url, std::string path)
 	conn.Connect();
 
 	/* request */
-	conn.GetRequest().GetHeader()["Range"] = "bytes=0-30";
+	//conn.GetRequest().GetHeader()["Range"] = "bytes=0-30";
 	
 	conn.GetRequest().SetBuffer(conn.GetRequest().GetStringHeader());
 	while (!conn.GetRequest().IsWriteDone())
 	{
 		bytes = conn.write(conn.GetRequest().GetOffset(), conn.GetRequest().GetRemainder());
+		if (bytes < 0)
+			throw WriteFailure();
 		conn.GetRequest().Send(bytes);
 	}
 
@@ -62,6 +72,8 @@ void Cluster::Download(std::string url, std::string path)
 	while (!conn.GetResponse().IsHeaderCompleted() || !conn.GetResponse().IsBodyCompleted())
 	{
 		bytes = conn.read(buf, sizeof(buf) - 1);
+		if (bytes < 0)
+			throw ReadFailure();
 		conn.GetResponse().Receive(buf, bytes);
 	}
 
