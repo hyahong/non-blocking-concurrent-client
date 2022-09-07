@@ -55,6 +55,11 @@ bool ClientRequest::IsWriteDone()
 	return _offset >= _size;
 }
 
+void ClientRequest::SetConnection(Connection &conn)
+{
+	_connection = &conn;
+}
+
 void ClientRequest::SetBuffer(std::string buf)
 {
 	_buffer = new char[buf.length()];

@@ -11,6 +11,8 @@
 # include <arpa/inet.h>
 # include <netdb.h>
 
+class Cluster;
+
 class Connection
 {
 public:
@@ -51,8 +53,12 @@ public:
 	};
 
 	/* function */
+	void SetCluster(Cluster &cluster);
+	Cluster &GetCluster();
+
 	void SetURL(std::string url);
 	void SetMethod(Method method);
+
 	void Connect();
 	void Close();
 
@@ -64,6 +70,8 @@ public:
 	ssize_t read(void *buf, size_t count);
 
 private:
+	Cluster *_cluster;
+
 	int _socket;
 	struct sockaddr_in _address;
 

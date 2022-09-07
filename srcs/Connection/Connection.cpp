@@ -32,6 +32,11 @@ const char *Connection::ConnectSSLFailure::what() const throw() {
 /* coplien */
 Connection::Connection()
 {
+	/* bridge */
+	_request.SetConnection(*this);
+	_response.SetConnection(*this);
+
+	/* fill */
 	bzero(&_address, sizeof(_address));
 }
 
@@ -49,6 +54,16 @@ Connection &Connection::operator=(Connection const &conn)
 }
 
 /* public */
+void Connection::SetCluster(Cluster &cluster)
+{
+	_cluster = &cluster;
+}
+
+Cluster &Connection::GetCluster()
+{
+	return *_cluster;
+}
+
 void Connection::SetURL(std::string url)
 {
 	parseURL(url);

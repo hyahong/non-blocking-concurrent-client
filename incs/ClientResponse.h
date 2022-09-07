@@ -23,6 +23,9 @@ public:
 
 	/* function */
 	void Receive(char *buf, size_t count);
+
+	void SetConnection(Connection &conn);
+
 	bool IsHeaderCompleted();
 	bool IsBodyCompleted();
 
@@ -36,7 +39,7 @@ public:
 	std::map<std::string, std::string> &GetHeader();
 
 private:
-	Connection *_conn;
+	Connection *_connection;
 
 	bool _flag;
 

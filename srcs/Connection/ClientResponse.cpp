@@ -30,7 +30,7 @@ ClientResponse &ClientResponse::operator=(ClientResponse const &res)
 {
 	return *this;
 }
-#include <iostream>
+
 /* public */
 void ClientResponse::Receive(char *buf, size_t count)
 {
@@ -49,13 +49,14 @@ void ClientResponse::Receive(char *buf, size_t count)
 		/* body */
 		if (_offset > 4)
 		{
-			std::cout << "{" << _buffer << "}";
+//			std::cout << "{" << _buffer << "}";
+		//	_connection->GetCluster().flush();
 			_offset = 0;
 			_buffer[_offset] = 0;
 		}
 		if (IsBodyCompleted() && _offset > 0)
 		{
-			std::cout << "{" << _buffer << "}";
+//			std::cout << "{" << _buffer << "}";
 			_offset = 0;
 			_buffer[_offset] = 0;
 		}
@@ -73,6 +74,11 @@ void ClientResponse::Receive(char *buf, size_t count)
 		_size = std::strtoull(_header["Content-Length"].c_str(), NULL, 10);
 		_flag = true;
 	}
+}
+
+void ClientResponse::SetConnection(Connection &conn)
+{
+	_connection = &conn;
 }
 
 bool ClientResponse::IsHeaderCompleted()
