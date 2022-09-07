@@ -6,6 +6,7 @@ ClientResponse::ClientResponse() :
 	_buffer(nullptr),
 	_bufferSize(0),
 	_offset(0),
+	_stackedOffset(0),
 	_size(0),
 	_version(""),
 	_code(""),
@@ -44,7 +45,20 @@ void ClientResponse::Receive(char *buf, size_t count)
 
 	if (_flag)
 	{
+		_stackedOffset += count;
 		/* body */
+		if (_offset > 4)
+		{
+			std::cout << "{" << _buffer << "}";
+			_offset = 0;
+			_buffer[_offset] = 0;
+		}
+		if (IsBodyCompleted() && _offset > 0)
+		{
+			std::cout << "{" << _buffer << "}";
+			_offset = 0;
+			_buffer[_offset] = 0;
+		}
 	}
 	if (!_flag && isHeaderCompleted())
 	{
@@ -54,7 +68,9 @@ void ClientResponse::Receive(char *buf, size_t count)
 		for (int i = 0; i < _offset - (pos - _buffer + 4); i++)
 			_buffer[i] = _buffer[pos - _buffer + 4 + i];
 		_offset = _offset - (pos - _buffer + 4);
+		_stackedOffset = _offset;
 		_buffer[_offset] = 0;
+		_size = std::strtoull(_header["Content-Length"].c_str(), NULL, 10);
 		_flag = true;
 	}
 }
@@ -62,6 +78,11 @@ void ClientResponse::Receive(char *buf, size_t count)
 bool ClientResponse::IsHeaderCompleted()
 {
 	return _flag;
+}
+
+bool ClientResponse::IsBodyCompleted()
+{
+	return _flag && _stackedOffset == _size;
 }
 
 std::string ClientResponse::GetVersion()
@@ -77,6 +98,18 @@ std::string ClientResponse::GetCode()
 std::string ClientResponse::GetStatus()
 {
 	return _status;
+}
+
+char *ClientResponse::GetBody()
+{
+	if (!_flag)
+		return NULL;
+	return _buffer;
+}
+
+unsigned long long int ClientResponse::GetBodySize()
+{
+	return _size;
 }
 
 std::map<std::string, std::string> &ClientResponse::GetHeader()

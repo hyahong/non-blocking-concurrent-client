@@ -4,7 +4,10 @@
 # include <map>
 # include <string>
 # include <cstring>
+# include <cstdlib>
 # include "type.h"
+
+class Connection;
 
 class ClientResponse
 {
@@ -21,20 +24,27 @@ public:
 	/* function */
 	void Receive(char *buf, size_t count);
 	bool IsHeaderCompleted();
+	bool IsBodyCompleted();
 
 	std::string GetVersion();
 	std::string GetCode();
 	std::string GetStatus();
 
+	char *GetBody();
+	unsigned long long int GetBodySize();
+
 	std::map<std::string, std::string> &GetHeader();
 
 private:
+	Connection *_conn;
+
 	bool _flag;
 
 	char *_buffer;
 	unsigned long long int _bufferSize;
 
 	unsigned long long int _offset;
+	unsigned long long int _stackedOffset;
 	unsigned long long int _size;
 
 	/* header */

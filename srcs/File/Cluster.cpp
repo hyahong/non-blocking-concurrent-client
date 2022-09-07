@@ -22,7 +22,7 @@ void Cluster::Download(std::string url, std::string path)
 {
 	Connection conn;
 	std::string header;
-	char buf[3];
+	char buf[20];
 	int bytes;
 
 	/* head */
@@ -31,11 +31,9 @@ void Cluster::Download(std::string url, std::string path)
 	/* connect */
 	conn.Connect();
 
-	std::cout << "?" << std::endl;
 	/* request */
-	conn.GetRequest().GetHeader()["Range"] = "bytes: 1-20";
-	std::cout << conn.GetRequest().GetOffset() << std::endl;
-
+	conn.GetRequest().GetHeader()["Range"] = "bytes=0-30";
+	
 	conn.GetRequest().SetBuffer(conn.GetRequest().GetStringHeader());
 	while (!conn.GetRequest().IsWriteDone())
 	{
@@ -44,14 +42,16 @@ void Cluster::Download(std::string url, std::string path)
 	}
 
 	/* response */
-	while (!conn.GetResponse().IsHeaderCompleted())
+	while (!conn.GetResponse().IsHeaderCompleted() || !conn.GetResponse().IsBodyCompleted())
 	{
 		bytes = conn.read(buf, sizeof(buf) - 1);
-		std::cout << buf << std::endl;
 		conn.GetResponse().Receive(buf, bytes);
 	}
 
+//	std::cout << conn.GetResponse().GetHeader()["Content-Length"] << std::endl;
+//	std::cout << conn.GetResponse().GetHeader()["Content-Range"] << std::endl;
 	std::cout << conn.GetResponse().GetCode() << std::endl;
+	std::cout << conn.GetResponse().GetBody() << std::endl;
 
 	conn.Close();
 }
