@@ -37,7 +37,7 @@ void Cluster::Download(std::string url, std::string path)
 
 	Connection conn;
 	std::string header;
-	char buf[20];
+	char buf[1024];
 	ssize_t bytes;
 
 	conn.SetCluster(*this);
@@ -63,7 +63,6 @@ void Cluster::Download(std::string url, std::string path)
 	{
 		bytes = conn.read(buf, sizeof(buf) - 1);
 		conn.GetResponse().Receive(buf, bytes);
-		std::cout << buf;
 	}
 
 //	std::cout << conn.GetResponse().GetHeader()["Content-Length"] << std::endl;
@@ -77,7 +76,6 @@ void Cluster::Download(std::string url, std::string path)
 /* I/O */
 void Cluster::flush(const char *buf, size_t count, off_t offset)
 {
-	/*
 	size_t written;
 	ssize_t bytes;
 
@@ -90,6 +88,4 @@ void Cluster::flush(const char *buf, size_t count, off_t offset)
 		bytes = write(_file, buf, count);
 		written += bytes;
 	}
-	*/
-	std::cout << "flush" << std::endl;
 }

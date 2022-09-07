@@ -1,4 +1,5 @@
 #include "ClientRequest.h"
+#include "Connection.h"
 
 /* coplien */
 ClientRequest::ClientRequest() :

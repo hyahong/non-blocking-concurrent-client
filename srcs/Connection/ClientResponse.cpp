@@ -1,4 +1,6 @@
 #include "ClientResponse.h"
+#include "Connection.h"
+#include "Cluster.h"
 
 /* coplien */
 ClientResponse::ClientResponse() :
@@ -6,6 +8,7 @@ ClientResponse::ClientResponse() :
 	_buffer(nullptr),
 	_bufferSize(0),
 	_offset(0),
+	_fileOffset(0),
 	_stackedOffset(0),
 	_size(0),
 	_version(""),
@@ -30,7 +33,7 @@ ClientResponse &ClientResponse::operator=(ClientResponse const &res)
 {
 	return *this;
 }
-
+#include <iostream>
 /* public */
 void ClientResponse::Receive(char *buf, size_t count)
 {
@@ -47,16 +50,13 @@ void ClientResponse::Receive(char *buf, size_t count)
 	{
 		_stackedOffset += count;
 		/* body */
-		if (_offset > 4)
+		if (_offset > 10000 || (IsBodyCompleted() && _offset > 0))
 		{
-//			std::cout << "{" << _buffer << "}";
-		//	_connection->GetCluster().flush();
-			_offset = 0;
-			_buffer[_offset] = 0;
-		}
-		if (IsBodyCompleted() && _offset > 0)
-		{
-//			std::cout << "{" << _buffer << "}";
+			/* flush */
+			if (!(_stackedOffset / 1000000 % 10))
+				std::cout << _stackedOffset / 1000000 << std::endl;
+			_connection->GetCluster().flush(_buffer, _offset, _fileOffset);
+			_fileOffset += _offset;
 			_offset = 0;
 			_buffer[_offset] = 0;
 		}

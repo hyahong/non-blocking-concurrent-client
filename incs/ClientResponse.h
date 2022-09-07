@@ -47,6 +47,7 @@ private:
 	unsigned long long int _bufferSize;
 
 	unsigned long long int _offset;
+	unsigned long long int _fileOffset;
 	unsigned long long int _stackedOffset;
 	unsigned long long int _size;
 
