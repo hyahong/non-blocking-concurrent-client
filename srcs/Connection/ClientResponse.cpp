@@ -33,9 +33,9 @@ ClientResponse &ClientResponse::operator=(ClientResponse const &res)
 {
 	return *this;
 }
-#include <iostream>
+
 /* public */
-void ClientResponse::Receive(char *buf, size_t count)
+void ClientResponse::Receive(char *buf, size_t count, unsigned long long int offset)
 {
 	char *pos;
 
@@ -45,22 +45,7 @@ void ClientResponse::Receive(char *buf, size_t count)
 		_buffer[_offset + i] = buf[i];
 	_offset += count;
 	_buffer[_offset] = 0;
-
-	if (_flag)
-	{
-		_stackedOffset += count;
-		/* body */
-		if (_offset > 10000 || (IsBodyCompleted() && _offset > 0))
-		{
-			/* flush */
-			if (!(_stackedOffset % FILE_BLOCK_SIZE))
-				std::cout << _stackedOffset / 1000000 << std::endl;
-			_connection->GetCluster().flush(_buffer, _offset, _fileOffset);
-			_fileOffset += _offset;
-			_offset = 0;
-			_buffer[_offset] = 0;
-		}
-	}
+	
 	if (!_flag && isHeaderCompleted())
 	{
 		/* header */
@@ -73,6 +58,23 @@ void ClientResponse::Receive(char *buf, size_t count)
 		_buffer[_offset] = 0;
 		_size = std::strtoull(_header["Content-Length"].c_str(), NULL, 10);
 		_flag = true;
+	}
+	else
+	{
+		_stackedOffset += count;
+	}
+
+	if (_flag)
+	{
+		/* body */
+		if (_offset > 10000 || (IsBodyCompleted() && _offset > 0))
+		{
+			/* flush */
+			_connection->GetCluster().flush(_buffer, _offset, offset + _fileOffset);
+			_fileOffset += _offset;
+			_offset = 0;
+			_buffer[_offset] = 0;
+		}
 	}
 }
 

@@ -20,3 +20,14 @@ FileBlock &FileBlock::operator=(const FileBlock &fb)
 {
 	return *this;
 }
+
+/* public */
+unsigned long long int FileBlock::GetStart()
+{
+	return _start;
+}
+
+unsigned long long int FileBlock::GetEnd()
+{
+	return _end;
+}

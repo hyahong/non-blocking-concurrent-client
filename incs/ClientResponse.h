@@ -22,7 +22,7 @@ public:
 	ClientResponse &operator=(ClientResponse const &res);
 
 	/* function */
-	void Receive(char *buf, size_t count);
+	void Receive(char *buf, size_t count, unsigned long long int offset);
 
 	void SetConnection(Connection &conn);
 

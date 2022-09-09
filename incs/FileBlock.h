@@ -16,6 +16,9 @@ public:
 
 	FileBlock &operator=(const FileBlock &fb);
 
+	unsigned long long int GetStart();
+	unsigned long long int GetEnd();
+
 private:
 	unsigned long long int _start;
 	unsigned long long int _end;

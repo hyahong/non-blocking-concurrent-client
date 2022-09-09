@@ -72,6 +72,11 @@ void ClientRequest::SetBuffer(std::string buf)
 	_size = buf.length();
 }
 
+void ClientRequest::SetRange(unsigned long long int start, unsigned long long int end)
+{
+	_header["Range"] = std::string("bytes=") + std::to_string(start) + "-" + std::to_string(end);
+}
+
 char *ClientRequest::GetOffset()
 {
 	return _buffer + _offset;

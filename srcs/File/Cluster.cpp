@@ -21,6 +21,18 @@ const char *Cluster::FailedToRequest::what() const throw() {
 	return ("Cluster: Failed to request");
 }
 
+const char *Cluster::EpollCreateFailure::what() const throw() {
+	return ("Cluster: Failed to create epoll file descriptor");
+}
+
+const char *Cluster::EpollCtlFailure::what() const throw() {
+	return ("Cluster: Failed to control epoll file descriptor");
+}
+
+const char *Cluster::UndefinedSocket::what() const throw() {
+	return ("Cluster: Undefined socket");
+}
+
 /* coplien */
 Cluster::Cluster() :
 	_url(""),
@@ -74,8 +86,6 @@ void Cluster::Download(std::string url, std::string path)
 	_size = std::strtoull(conn.GetResponse().GetHeader()["Content-Length"].c_str(), NULL, 0);
 	/* file to splited block */
 	splitFileToBlocks();
-	/* worker (connection) */
-	makeWorker();
 	/* non-blocking run */
 	run();
 }
@@ -124,7 +134,7 @@ void Cluster::requestHead(Connection &conn)
 		bytes = conn.read(buf, sizeof(buf) - 1);
 		if (bytes < 0)
 			throw ReadFailure();
-		conn.GetResponse().Receive(buf, bytes);
+		conn.GetResponse().Receive(buf, bytes, 0);
 	}
 	/* close */
 	conn.Close();
@@ -154,14 +164,175 @@ void Cluster::makeWorker()
 	_workers = new worker_t[_workerSize];
 	for (unsigned int i = 0; i < _workerSize; ++i)
 	{
-		_workers[i].Info = &_blocks[i];
+		_workers[i].Conn.SetMode(Mode::NONBLOCKING);
 		_workers[i].Conn.SetCluster(*this);
 		_workers[i].Conn.SetMethod(Method::GET);
 		_workers[i].Conn.SetURL(_url);
 		_workers[i].Conn.Connect();
+		/* init setting */
+		_workers[i].Info = &_blocks[i];
+		_workers[i].Conn.GetRequest().SetRange(_workers[i].Info->GetStart(), _workers[i].Info->GetEnd());
+		_workers[i].Conn.GetRequest().SetBuffer(_workers[i].Conn.GetRequest().GetStringHeader());
+	}
+}
+
+Cluster::worker_t *Cluster::findWorker(int socket)
+{
+	for (unsigned int i = 0; i < _workerSize; ++i)
+	{
+		if (_workers[i].Conn.GetSocket() == socket)
+			return &_workers[i];
+	}
+	return NULL;
+}
+
+/* socket I/O */
+bool Cluster::epollRead(int epollFd, int socket)
+{
+	worker_t *worker;
+	char buf[RECEIVE_BUFFER_SIZE + 1];
+	int bytes;
+	int error;
+
+	worker = findWorker(socket);
+	if (!worker)
+		throw UndefinedSocket();
+	/* read */
+	bytes = worker->Conn.read(buf, sizeof(buf) - 1);
+	if (bytes <= 0)
+	{
+		if (worker->Conn.GetSchema() == Schema::HTTP)
+			return false;
+
+		/* https */
+		error = SSL_get_error(worker->Conn.GetSSL(), bytes);
+		if(error == SSL_ERROR_WANT_READ || error == SSL_ERROR_WANT_WRITE || error == SSL_ERROR_WANT_X509_LOOKUP)
+			return false;
+		else if(error == SSL_ERROR_ZERO_RETURN)
+		{
+			/* disconnected by server */
+			return false;
+		}
+		else
+			throw ReadFailure();
+	}
+	worker->Conn.GetResponse().Receive(buf, bytes, worker->Info->GetStart());
+	if (worker->Conn.GetResponse().IsHeaderCompleted() && worker->Conn.GetResponse().IsBodyCompleted())
+		return true;
+	return false;
+}
+
+bool Cluster::epollWrite(int epollFd, int socket)
+{
+	worker_t *worker;
+	int bytes;
+	int error;
+
+	worker = findWorker(socket);
+	if (!worker)
+		throw UndefinedSocket();
+	/* write */
+	bytes = worker->Conn.write(worker->Conn.GetRequest().GetOffset(), worker->Conn.GetRequest().GetRemainder());
+	if (bytes <= 0)
+	{
+		if (worker->Conn.GetSchema() == Schema::HTTP)
+			return false;
+
+		/* https */
+		error = SSL_get_error(worker->Conn.GetSSL(), bytes);
+		if(error == SSL_ERROR_WANT_READ || error == SSL_ERROR_WANT_WRITE || error == SSL_ERROR_WANT_X509_LOOKUP)
+			return false;
+		else if(error == SSL_ERROR_ZERO_RETURN)
+		{
+			/* disconnected by server */
+			return false;
+		}
+		else
+			throw ReadFailure();
+	}
+	worker->Conn.GetRequest().Send(bytes);
+	if (worker->Conn.GetRequest().IsWriteDone())
+		return true;
+	return false;
+}
+
+void Cluster::readDone(int epollFd, int socket)
+{
+	struct epoll_event event;
+
+	event.data.fd = socket;
+	if (epoll_ctl(epollFd, EPOLL_CTL_DEL, event.data.fd, &event) < 0)
+	{
+		perror("Epoll ctl: ");
+		throw EpollCtlFailure();
+	}
+	std::cout << socket << " compl" << std::endl;
+}
+
+void Cluster::writeDone(int epollFd, int socket)
+{
+	struct epoll_event event;
+
+	event.data.fd = socket;
+	event.events = EPOLLIN | EPOLLERR | EPOLLHUP;
+	if (epoll_ctl(epollFd, EPOLL_CTL_MOD, event.data.fd, &event) < 0)
+	{
+		perror("Epoll ctl: ");
+		throw EpollCtlFailure();
 	}
 }
 
 void Cluster::run()
 {
+	struct epoll_event *events;
+	int epollFd;
+	int ready;
+
+	/* worker (connection) */
+	makeWorker();
+
+	/* allocate */
+	events = new struct epoll_event[_workerSize + 1];
+	bzero(events, (_workerSize + 1) * sizeof(struct epoll_event));
+
+	/* epoll */
+	epollFd = epoll_create(_workerSize);
+    if (epollFd < 0)
+	{
+        perror("Epoll create: ");
+		throw EpollCreateFailure();
+    }
+	for (unsigned int i = 0; i < _workerSize; ++i)
+	{
+		struct epoll_event event;
+
+		event.data.fd = _workers[i].Conn.GetSocket();
+		event.events = EPOLLOUT | EPOLLERR | EPOLLHUP;
+
+		if (epoll_ctl(epollFd, EPOLL_CTL_ADD, event.data.fd, &event) < 0)
+		{
+			perror("Epoll ctl: ");
+			throw EpollCtlFailure();
+		}
+	}
+
+	/* non-blocking I/O */
+	while (1)
+	{
+		ready = epoll_wait(epollFd, events, _workerSize, 100);
+		if (ready < 0 && ready == EINTR)
+			continue;
+		/* handles error, read, write in order */
+		for (int i = 0; i < ready; ++i)
+		{
+			if ((events[i].events & EPOLLERR) || (events[i].events & EPOLLHUP) || (!(events[i].events & (EPOLLIN | EPOLLOUT))))
+				continue;
+			else if (events->events & (EPOLLIN | EPOLLHUP) && epollRead(epollFd, events[i].data.fd))
+				readDone(epollFd, events[i].data.fd);
+			else if (events->events & EPOLLOUT && epollWrite(epollFd, events[i].data.fd))
+				writeDone(epollFd, events[i].data.fd);
+		}
+	}
+
+	delete[] events;
 }

@@ -64,6 +64,11 @@ void Connection::SetCluster(Cluster &cluster)
 	_cluster = &cluster;
 }
 
+void Connection::SetMode(Mode mode)
+{
+	_mode = mode;
+}
+
 Cluster &Connection::GetCluster()
 {
 	return *_cluster;
@@ -120,6 +125,16 @@ void Connection::Close()
 	}
 }
 
+int Connection::GetSocket()
+{
+	return _socket;
+}
+
+Schema Connection::GetSchema()
+{
+	return _schema;
+}
+
 ClientRequest &Connection::GetRequest()
 {
 	return _request;
@@ -128,6 +143,11 @@ ClientRequest &Connection::GetRequest()
 ClientResponse &Connection::GetResponse()
 {
 	return _response;
+}
+
+SSL *Connection::GetSSL()
+{
+	return _tls._ssl;
 }
 
 /* I/O */
@@ -215,8 +235,6 @@ void Connection::useTLS()
 
 			if (sslError == SSL_ERROR_WANT_READ || sslError == SSL_ERROR_WANT_WRITE || sslError == SSL_ERROR_WANT_X509_LOOKUP)
                 continue;
-            else if(sslError == SSL_ERROR_ZERO_RETURN)
-				throw ConnectSSLFailure();
             else
 			{
                 perror("SSL: ");

@@ -28,6 +28,7 @@ public:
 
 	void SetConnection(Connection &conn);
 	void SetBuffer(std::string buf);
+	void SetRange(unsigned long long int start, unsigned long long int end);
 
 	char *GetOffset();
 	size_t GetRemainder();

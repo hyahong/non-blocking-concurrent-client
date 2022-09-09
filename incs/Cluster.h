@@ -2,6 +2,7 @@
 # define _CLUSTER_H_
 
 # include <fcntl.h>
+# include <sys/epoll.h>
 # include "Connection.h"
 # include "FileBlock.h"
 
@@ -33,6 +34,18 @@ public:
 	};
 
 	class FailedToRequest : public std::exception {
+		virtual const char *what() const throw();
+	};
+
+	class EpollCreateFailure : public std::exception {
+		virtual const char *what() const throw();
+	};
+
+	class EpollCtlFailure : public std::exception {
+		virtual const char *what() const throw();
+	};
+
+	class UndefinedSocket : public std::exception {
 		virtual const char *what() const throw();
 	};
 
@@ -71,6 +84,14 @@ private:
 	void requestHead(Connection &conn);
 	void splitFileToBlocks();
 	void makeWorker();
+
+	worker_t *findWorker(int socket);
+
+	/* non-blocking */
+	bool epollRead(int epollFd, int socket);
+	bool epollWrite(int epollFd, int socket);
+	void readDone(int epollFd, int socket);
+	void writeDone(int epollFd, int socket);
 
 	void run();
 };

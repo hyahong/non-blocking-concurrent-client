@@ -3,15 +3,15 @@
 
 # include <iostream>
 # include <cstring>
-# include "TLSSocket.h"
-# include "ClientRequest.h"
-# include "ClientResponse.h"
 # include <fcntl.h>
 # include <unistd.h>
 # include <netinet/in.h>
 # include <arpa/inet.h>
 # include <netdb.h>
 # include <errno.h>
+# include "TLSSocket.h"
+# include "ClientRequest.h"
+# include "ClientResponse.h"
 
 class Cluster;
 
@@ -60,6 +60,7 @@ public:
 
 	/* function */
 	void SetCluster(Cluster &cluster);
+	void SetMode(Mode mode);
 	Cluster &GetCluster();
 
 	void SetURL(std::string url);
@@ -68,8 +69,11 @@ public:
 	void Connect();
 	void Close();
 
+	int GetSocket();
+	Schema GetSchema();
 	ClientRequest &GetRequest();
 	ClientResponse &GetResponse();
+	SSL *GetSSL();
 
 	/* I/O */
 	ssize_t write(const void *buf, size_t count);
