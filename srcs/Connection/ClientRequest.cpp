@@ -63,6 +63,8 @@ void ClientRequest::SetConnection(Connection &conn)
 
 void ClientRequest::SetBuffer(std::string buf)
 {
+	if (_buffer)
+		delete[] _buffer;
 	_buffer = new char[buf.length()];
 	for (int i = 0; i < buf.length(); ++i)
 		_buffer[i] = buf[i];

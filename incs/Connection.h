@@ -6,10 +6,12 @@
 # include "TLSSocket.h"
 # include "ClientRequest.h"
 # include "ClientResponse.h"
+# include <fcntl.h>
 # include <unistd.h>
 # include <netinet/in.h>
 # include <arpa/inet.h>
 # include <netdb.h>
+# include <errno.h>
 
 class Cluster;
 
@@ -17,7 +19,7 @@ class Connection
 {
 public:
 	/* coplien */
-	Connection();
+	Connection(Mode mode = Mode::BLOCKING);
 	Connection(Connection const &conn);
 	virtual ~Connection();
 
@@ -52,6 +54,10 @@ public:
 		virtual const char *what() const throw();
 	};
 
+	class FailedToChangeFileFlag : public std::exception {
+		virtual const char *what() const throw();
+	};
+
 	/* function */
 	void SetCluster(Cluster &cluster);
 	Cluster &GetCluster();
@@ -71,6 +77,8 @@ public:
 
 private:
 	Cluster *_cluster;
+
+	Mode _mode;
 
 	int _socket;
 	struct sockaddr_in _address;

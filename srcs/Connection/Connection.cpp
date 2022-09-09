@@ -29,8 +29,13 @@ const char *Connection::ConnectSSLFailure::what() const throw() {
 	return ("Connection: Failed to connect by SSL");
 }
 
+const char *Connection::FailedToChangeFileFlag::what() const throw() {
+	return ("Connection: Failed to set file flag");
+}
+
 /* coplien */
-Connection::Connection()
+Connection::Connection(Mode mode) :
+	_mode(mode)
 {
 	/* bridge */
 	_request.SetConnection(*this);
@@ -77,13 +82,21 @@ void Connection::SetMethod(Method method)
 
 void Connection::Connect()
 {
+	int flags;
+	int error;
+
 	/* socket */
 	_socket = ::socket(PF_INET, SOCK_STREAM, 0);
+    if (_mode == Mode::NONBLOCKING &&
+			((flags = fcntl(_socket, F_GETFL, 0)) < 0 || fcntl(_socket, F_SETFL, flags | O_NONBLOCK) < 0))
+		throw FailedToChangeFileFlag();
+
 	_address.sin_family = AF_INET;
 	_address.sin_port = htons(_schema == Schema::HTTP ? 80 : 443);
 	
+	error = ::connect(_socket, (struct sockaddr *) &_address, sizeof(_address));
 	/* connect */
-	if (::connect(_socket, (struct sockaddr *) &_address, sizeof(_address)) != 0)
+	if (error < 0 && errno != EINPROGRESS)
 		throw ConnectionFailure();
 
 	/* set TLS if needed */
@@ -175,6 +188,8 @@ void Connection::parseDNS()
 void Connection::useTLS()
 {
 	X509 *cert;
+	int error;
+	int sslError;
 
 	SSL_library_init();
 	SSL_load_error_strings();
@@ -190,8 +205,28 @@ void Connection::useTLS()
 		throw FailureToUseSNI();
 	if (!SSL_set_fd(_tls._ssl, _socket))
 		throw FailureToSetFD();
-	if (SSL_connect(_tls._ssl) <= 0)
-		throw ConnectSSLFailure();
+
+	while (1)
+	{
+		error = SSL_connect(_tls._ssl);
+		if (error <= 0)
+		{
+			sslError = SSL_get_error(_tls._ssl, error);
+
+			if (sslError == SSL_ERROR_WANT_READ || sslError == SSL_ERROR_WANT_WRITE || sslError == SSL_ERROR_WANT_X509_LOOKUP)
+                continue;
+            else if(sslError == SSL_ERROR_ZERO_RETURN)
+				throw ConnectSSLFailure();
+            else
+			{
+                perror("SSL: ");
+				throw ConnectSSLFailure();
+            }
+        }
+        else
+            break;
+	}
+
 	/* certification */
 	cert = SSL_get_peer_certificate(_tls._ssl);
 	if (cert)

@@ -53,7 +53,7 @@ void ClientResponse::Receive(char *buf, size_t count)
 		if (_offset > 10000 || (IsBodyCompleted() && _offset > 0))
 		{
 			/* flush */
-			if (!(_stackedOffset / 1000000 % 10))
+			if (!(_stackedOffset % FILE_BLOCK_SIZE))
 				std::cout << _stackedOffset / 1000000 << std::endl;
 			_connection->GetCluster().flush(_buffer, _offset, _fileOffset);
 			_fileOffset += _offset;

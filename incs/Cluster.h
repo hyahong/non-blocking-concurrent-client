@@ -32,6 +32,10 @@ public:
 		virtual const char *what() const throw();
 	};
 
+	class FailedToRequest : public std::exception {
+		virtual const char *what() const throw();
+	};
+
 	/* function */
 	void Download(std::string url, std::string path);
 
@@ -39,7 +43,36 @@ public:
 	void flush(const char *buf, size_t count, off_t offset);
 
 private:
+	/* struct */
+	struct _worker
+	{
+		/* public */
+		FileBlock *Info;
+		Connection Conn;
+	};
+	typedef _worker worker_t;
+
+	/* member */
 	int _file;
+
+	std::string _url;
+	std::string _path;
+
+	FileBlock *_blocks;
+	unsigned long long int _blockSize;
+
+	unsigned long long int _size;
+
+	worker_t *_workers;
+	unsigned int _workerSize;
+	unsigned long long int _blockOffset;
+
+	/* function */
+	void requestHead(Connection &conn);
+	void splitFileToBlocks();
+	void makeWorker();
+
+	void run();
 };
 
 #endif
