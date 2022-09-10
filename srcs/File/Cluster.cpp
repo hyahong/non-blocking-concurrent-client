@@ -86,6 +86,8 @@ void Cluster::Download(std::string url, std::string path)
 	_size = std::strtoull(conn.GetResponse().GetHeader()["Content-Length"].c_str(), NULL, 0);
 	/* file to splited block */
 	splitFileToBlocks();
+	/* register tasks */
+	useTaskQueue();
 	/* non-blocking run */
 	run();
 }
@@ -158,6 +160,18 @@ void Cluster::splitFileToBlocks()
 	_blocks[block - 1]._end = _size;
 }
 
+void Cluster::useTaskQueue()
+{
+	/* clear */
+	std::queue<FileBlock *> emptyQueue;
+	std::swap(_tasks, emptyQueue);
+	/* enqueue */
+	for (unsigned long long int i = 0; i < _blockSize; ++i)
+	{
+		_tasks.push(&_blocks[i]);
+	}
+}
+
 void Cluster::makeWorker()
 {
 	_workerSize = WORKER_NUMBER > _blockSize ? _blockSize : WORKER_NUMBER;
@@ -170,7 +184,8 @@ void Cluster::makeWorker()
 		_workers[i].Conn.SetURL(_url);
 		_workers[i].Conn.Connect();
 		/* init setting */
-		_workers[i].Info = &_blocks[i];
+		_workers[i].Info = _tasks.front();
+		_tasks.pop();
 		_workers[i].Conn.GetRequest().SetRange(_workers[i].Info->GetStart(), _workers[i].Info->GetEnd());
 		_workers[i].Conn.GetRequest().SetBuffer(_workers[i].Conn.GetRequest().GetStringHeader());
 	}
@@ -259,14 +274,36 @@ bool Cluster::epollWrite(int epollFd, int socket)
 void Cluster::readDone(int epollFd, int socket)
 {
 	struct epoll_event event;
+	worker_t *worker;
 
+	/* find worker */
+	worker = findWorker(socket);
+	if (!worker)
+		throw UndefinedSocket();
+	/* epoll */
 	event.data.fd = socket;
-	if (epoll_ctl(epollFd, EPOLL_CTL_DEL, event.data.fd, &event) < 0)
+	event.events = EPOLLOUT | EPOLLERR | EPOLLHUP;
+	if (epoll_ctl(epollFd, EPOLL_CTL_MOD, event.data.fd, &event) < 0)
 	{
 		perror("Epoll ctl: ");
 		throw EpollCtlFailure();
 	}
-	std::cout << socket << " compl" << std::endl;
+	/* set task */
+	if (_tasks.empty())
+	{
+		if (epoll_ctl(epollFd, EPOLL_CTL_DEL, event.data.fd, &event) < 0)
+		{
+			perror("Epoll ctl: ");
+			throw EpollCtlFailure();
+		}
+		//std::cout << "stop worker" << std::endl;
+		return ;
+	}
+	worker->Info = _tasks.front();
+	_tasks.pop();
+	worker->Conn.GetResponse().Reset();
+	worker->Conn.GetRequest().SetRange(worker->Info->GetStart(), worker->Info->GetEnd());
+	worker->Conn.GetRequest().SetBuffer(worker->Conn.GetRequest().GetStringHeader());
 }
 
 void Cluster::writeDone(int epollFd, int socket)

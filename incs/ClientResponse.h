@@ -22,6 +22,8 @@ public:
 	ClientResponse &operator=(ClientResponse const &res);
 
 	/* function */
+	void Reset();
+
 	void Receive(char *buf, size_t count, unsigned long long int offset);
 
 	void SetConnection(Connection &conn);

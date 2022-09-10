@@ -1,6 +1,7 @@
 #ifndef _CLUSTER_H_
 # define _CLUSTER_H_
 
+# include <queue>
 # include <fcntl.h>
 # include <sys/epoll.h>
 # include "Connection.h"
@@ -76,6 +77,8 @@ private:
 
 	unsigned long long int _size;
 
+	std::queue<FileBlock *> _tasks;
+
 	worker_t *_workers;
 	unsigned int _workerSize;
 	unsigned long long int _blockOffset;
@@ -83,6 +86,7 @@ private:
 	/* function */
 	void requestHead(Connection &conn);
 	void splitFileToBlocks();
+	void useTaskQueue();
 	void makeWorker();
 
 	worker_t *findWorker(int socket);

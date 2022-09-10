@@ -3,7 +3,7 @@
 
 /* macro */
 # define RECEIVE_BUFFER_SIZE (1024) /* byte */
-# define FILE_BLOCK_SIZE 3//(20 * 1024 * 1024) /* byte */
+# define FILE_BLOCK_SIZE 4//(20 * 1024 * 1024) /* byte */
 # define WORKER_NUMBER 10
 
 /* enum type */

@@ -20,7 +20,6 @@ public:
 	ClientRequest &operator=(ClientRequest const &req);
 
 	/* function */
-
 	std::map<std::string, std::string> &GetHeader();
 	std::string GetStringHeader();
 

@@ -35,6 +35,19 @@ ClientResponse &ClientResponse::operator=(ClientResponse const &res)
 }
 
 /* public */
+void ClientResponse::Reset()
+{
+	_header.clear();
+	_flag = false;
+	_offset = 0;
+	_fileOffset = 0;
+	_stackedOffset = 0;
+	_size = 0;
+	_version = "";
+	_code = "";
+	_status = "";
+}
+
 void ClientResponse::Receive(char *buf, size_t count, unsigned long long int offset)
 {
 	char *pos;
