@@ -33,6 +33,7 @@ enum class Status
 {
 	WAITING,
 	RUNNING,
+	DONE,
 	FAILED
 };
 

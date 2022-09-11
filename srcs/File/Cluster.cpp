@@ -251,11 +251,23 @@ void Cluster::print(bool bar)
 			str.str("");
 			str.clear();
 			blockSize = _blocks[r]._end - _blocks[r]._start + 1;
-			if (blockSize > 1024 * 1024)
-				str << _blocks[r]._stackedSize / 1000 << "/" << blockSize / 1000 << " ";
+			if (blockSize > 1024 * 1024 * 1024)
+				str << _blocks[r]._stackedSize / 1024 / 1024 << "/" << blockSize / 1024 / 1024 << " ";
+			else if (blockSize > 1024 * 1024)
+				str << _blocks[r]._stackedSize / 1024 << "/" << blockSize / 1024 << " ";
 			else
 				str << _blocks[r]._stackedSize << "/" << blockSize << " ";
+
+			if (_blocks[r]._status == Status::WAITING)
+				str << "WAITING";
+			else if (_blocks[r]._status == Status::RUNNING)
+				str << "RUNNING";
+			else if (_blocks[r]._status == Status::DONE)
+				str << "DONE";
+			else if (_blocks[r]._status == Status::FAILED)
+				str << "FAILED";
 			str << (_blocks[r]._isCached ? "(C)" : "");
+
 			std::cout << std::setw(PROGRESS_BAR_WIDTH) << str.str();
 			std::cout << std::setw(PROGRESS_MARGIN) << "";
 		}
@@ -388,6 +400,7 @@ void Cluster::readDone(int epollFd, int socket)
 		throw EpollCtlFailure();
 	}
 	/* set task */
+	worker->Info->_status = Status::DONE;
 	if (_tasks.empty())
 	{
 		if (epoll_ctl(epollFd, EPOLL_CTL_DEL, event.data.fd, &event) < 0)
@@ -485,7 +498,6 @@ void Cluster::run()
 		}
 	}
 
-	//print(_blockSize < 80);
 	print();
 	std::cout << "time: " << (double) (clock() - start) / CLOCKS_PER_SEC << " s" << std::endl;
 	delete[] events;
