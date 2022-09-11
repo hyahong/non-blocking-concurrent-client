@@ -7,7 +7,7 @@
 # define WORKER_NUMBER (10)
 
 # define PROGRESS_BAR_WIDTH (20)
-# define PROGRESS_COLUMN (4)
+# define PROGRESS_COLUMN (8)
 # define PROGRESS_MARGIN (5)
 
 /* enum type */

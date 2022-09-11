@@ -219,21 +219,30 @@ Cluster::worker_t *Cluster::findWorker(int socket)
 	return NULL;
 }
 
-void Cluster::cycle()
+void Cluster::cycle(int &callcycle)
+{
+	_stackedSize = 0;
+	/* global */
+	for (unsigned long long int i = 0; i < _blockSize; ++i)
+		_stackedSize += _blocks[i].GetStackedSize();
+	/* draw */
+	if (!(callcycle % 100))
+	{
+		print();
+		callcycle = 0;
+	}
+}
+
+void Cluster::print(bool bar)
 {
 	std::ostringstream str;
 	unsigned long long int blockSize;
 	int barPercent;
 
-	_stackedSize = 0;
 	/* system */
 	system("clear");
 	/* global */
-	for (unsigned long long int i = 0; i < _blockSize; ++i)
-	{
-		_stackedSize += _blocks[i].GetStackedSize();
-	}
-	std::cout << _stackedSize << "/" << _size << " (" << _stackedSize / _size * 100 << "%)" << std::endl << std::endl;
+	std::cout << _stackedSize << "/" << _size << " (" << _stackedSize * 100 / _size << "%)" << std::endl << std::endl;
 	/* local */
 	for (unsigned long long int i = 0; i < _blockSize; i += PROGRESS_COLUMN)
 	{
@@ -242,23 +251,29 @@ void Cluster::cycle()
 			str.str("");
 			str.clear();
 			blockSize = _blocks[r]._end - _blocks[r]._start + 1;
-			str << _blocks[r]._stackedSize << "/" << blockSize << " " << (_blocks[r]._isCached ? "(C)" : "");
+			if (blockSize > 1024 * 1024)
+				str << _blocks[r]._stackedSize / 1000 << "/" << blockSize / 1000 << " ";
+			else
+				str << _blocks[r]._stackedSize << "/" << blockSize << " ";
+			str << (_blocks[r]._isCached ? "(C)" : "");
 			std::cout << std::setw(PROGRESS_BAR_WIDTH) << str.str();
 			std::cout << std::setw(PROGRESS_MARGIN) << "";
 		}
 		std::cout << std::endl;
-		for (unsigned long long int r = i; r < _blockSize && r < PROGRESS_COLUMN + i; ++r)
+		if (bar)
 		{
-			blockSize = _blocks[r]._end - _blocks[r]._start + 1;
-			barPercent = (int) (_blocks[r]._stackedSize * PROGRESS_BAR_WIDTH / blockSize);
-			for (int j = 0; j < barPercent; ++j)
-				std::cout << "█";
-			for (int j = 0; j < PROGRESS_BAR_WIDTH - barPercent; ++j)
-				std::cout << "░";
-			std::cout << std::setw(PROGRESS_MARGIN) << "";
+			for (unsigned long long int r = i; r < _blockSize && r < PROGRESS_COLUMN + i; ++r)
+			{
+				blockSize = _blocks[r]._end - _blocks[r]._start + 1;
+				barPercent = (int) (_blocks[r]._stackedSize * PROGRESS_BAR_WIDTH / blockSize);
+				for (int j = 0; j < barPercent; ++j)
+					std::cout << "█";
+				for (int j = 0; j < PROGRESS_BAR_WIDTH - barPercent; ++j)
+					std::cout << "░";
+				std::cout << std::setw(PROGRESS_MARGIN) << "";
+			}
+			std::cout << std::endl << std::endl;
 		}
-
-		std::cout << std::endl << std::endl;
 	}
 }
 
@@ -290,8 +305,14 @@ bool Cluster::epollRead(int socket)
 			return false;
 		}
 		else
+		{
+			perror("write");
+			std::cout << "read: " << error << std::endl;
+			//return false;
 			throw ReadFailure();
-	}
+		}
+	}	
+	/* receive */
 	worker->Conn.GetResponse().Receive(buf, bytes, worker->Info->GetStart());
 	worker->Info->SetStackedSize(worker->Conn.GetResponse().GetStackedSize());
 	if (worker->Conn.GetResponse().IsHeaderCompleted())
@@ -335,7 +356,12 @@ bool Cluster::epollWrite(int socket)
 			return false;
 		}
 		else
-			throw ReadFailure();
+		{
+			perror("write");
+			std::cout << "write: " << error << std::endl;
+			///return false;
+			throw WriteFailure();
+		}
 	}
 	worker->Conn.GetRequest().Send(bytes);
 	if (worker->Conn.GetRequest().IsWriteDone())
@@ -396,8 +422,11 @@ void Cluster::writeDone(int epollFd, int socket)
 
 void Cluster::run()
 {
+	clock_t start;
+	int callcycle;
 	struct epoll_event *events;
 	int epollFd;
+	bool isRead;
 	int ready;
 
 	/* worker (connection) */
@@ -428,29 +457,36 @@ void Cluster::run()
 			throw EpollCtlFailure();
 		}
 	}
-
+	/* start */
+	callcycle = 0;
+    start = clock();
+	isRead = false;
 	/* non-blocking I/O */
 	while (_stackedSize != _size)
 	{
 		ready = epoll_wait(epollFd, events, _workerSize, -1);
-		if (ready < 0 && ready == EINTR)
-			continue;
+		if (ready < 0)
+		{
+			if (ready == EINTR)
+				continue;
+			throw EpollCtlFailure(); /*need changes */
+		}
 		/* handles error, read, write in order */
 		for (int i = 0; i < ready; ++i)
 		{
 			if ((events[i].events & EPOLLERR) || (events[i].events & EPOLLHUP) || (!(events[i].events & (EPOLLIN | EPOLLOUT))))
 				continue;
-			else if (events->events & (EPOLLIN | EPOLLHUP) && epollRead(events[i].data.fd))
-			{
+			else if (events->events & (EPOLLIN | EPOLLHUP) && (epollRead(events[i].data.fd) || !(isRead = true)))
 				readDone(epollFd, events[i].data.fd);
-				/* handles current state */
-				cycle();
-			}
 			else if (events->events & EPOLLOUT && epollWrite(events[i].data.fd))
 				writeDone(epollFd, events[i].data.fd);
-		}	
+			if (isRead)
+				cycle(++callcycle);
+		}
 	}
-	std::cout << "complete" << std::endl;
 
+	//print(_blockSize < 80);
+	print();
+	std::cout << "time: " << (double) (clock() - start) / CLOCKS_PER_SEC << " s" << std::endl;
 	delete[] events;
 }

@@ -93,7 +93,8 @@ private:
 
 	worker_t *findWorker(int socket);
 
-	void cycle();
+	void cycle(int &callcycle);
+	void print(bool bar = true);
 
 	/* non-blocking */
 	bool epollRead(int socket);
