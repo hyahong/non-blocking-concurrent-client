@@ -40,9 +40,9 @@ Cluster::Cluster() :
 	_blocks(nullptr),
 	_blockSize(0),
 	_size(0),
+	_stackedSize(0),
 	_workers(nullptr),
-	_workerSize(0),
-	_blockOffset(0)
+	_workerSize(0)
 {
 }
 
@@ -201,6 +201,15 @@ Cluster::worker_t *Cluster::findWorker(int socket)
 	return NULL;
 }
 
+void Cluster::cycle()
+{
+	_stackedSize = 0;
+	for (unsigned long long i = 0; i < _blockSize; ++i)
+	{
+		_stackedSize += _blocks[i].GetStackedSize();
+	}
+}
+
 /* socket I/O */
 bool Cluster::epollRead(int epollFd, int socket)
 {
@@ -232,6 +241,7 @@ bool Cluster::epollRead(int epollFd, int socket)
 			throw ReadFailure();
 	}
 	worker->Conn.GetResponse().Receive(buf, bytes, worker->Info->GetStart());
+	worker->Info->SetStackedSize(worker->Conn.GetResponse().GetStackedSize());
 	if (worker->Conn.GetResponse().IsHeaderCompleted() && worker->Conn.GetResponse().IsBodyCompleted())
 		return true;
 	return false;
@@ -354,7 +364,7 @@ void Cluster::run()
 	}
 
 	/* non-blocking I/O */
-	while (1)
+	while (_stackedSize != _size)
 	{
 		ready = epoll_wait(epollFd, events, _workerSize, 100);
 		if (ready < 0 && ready == EINTR)
@@ -369,7 +379,10 @@ void Cluster::run()
 			else if (events->events & EPOLLOUT && epollWrite(epollFd, events[i].data.fd))
 				writeDone(epollFd, events[i].data.fd);
 		}
+		/* handles current state */
+		cycle();
 	}
+	std::cout << "complete" << std::endl;
 
 	delete[] events;
 }

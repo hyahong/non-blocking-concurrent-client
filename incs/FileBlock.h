@@ -19,9 +19,14 @@ public:
 	unsigned long long int GetStart();
 	unsigned long long int GetEnd();
 
+	void SetStackedSize(unsigned long long int size);
+	unsigned long long int GetStackedSize();
+
 private:
 	unsigned long long int _start;
 	unsigned long long int _end;
+
+	unsigned long long int _stackedSize;
 
 	Status _status;
 };

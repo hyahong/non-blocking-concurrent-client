@@ -133,6 +133,11 @@ unsigned long long int ClientResponse::GetBodySize()
 	return _size;
 }
 
+unsigned long long int ClientResponse::GetStackedSize()
+{
+	return _stackedOffset;
+}
+
 std::map<std::string, std::string> &ClientResponse::GetHeader()
 {
 	return _header;

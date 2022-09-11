@@ -76,12 +76,12 @@ private:
 	unsigned long long int _blockSize;
 
 	unsigned long long int _size;
+	unsigned long long int _stackedSize;
 
 	std::queue<FileBlock *> _tasks;
 
 	worker_t *_workers;
 	unsigned int _workerSize;
-	unsigned long long int _blockOffset;
 
 	/* function */
 	void requestHead(Connection &conn);
@@ -90,6 +90,8 @@ private:
 	void makeWorker();
 
 	worker_t *findWorker(int socket);
+
+	void cycle();
 
 	/* non-blocking */
 	bool epollRead(int epollFd, int socket);

@@ -31,3 +31,13 @@ unsigned long long int FileBlock::GetEnd()
 {
 	return _end;
 }
+
+void FileBlock::SetStackedSize(unsigned long long int size)
+{
+	_stackedSize = size;
+}
+
+unsigned long long int FileBlock::GetStackedSize()
+{
+	return _stackedSize;
+}

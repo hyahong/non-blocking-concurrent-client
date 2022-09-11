@@ -37,6 +37,7 @@ public:
 
 	char *GetBody();
 	unsigned long long int GetBodySize();
+	unsigned long long int GetStackedSize();
 
 	std::map<std::string, std::string> &GetHeader();
 
