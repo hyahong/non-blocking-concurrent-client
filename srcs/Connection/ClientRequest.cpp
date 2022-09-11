@@ -19,6 +19,7 @@ ClientRequest::ClientRequest() :
 
 ClientRequest::ClientRequest(ClientRequest const &req)
 {
+	(void) req;
 }
 
 ClientRequest::~ClientRequest()
@@ -29,6 +30,7 @@ ClientRequest::~ClientRequest()
 
 ClientRequest &ClientRequest::operator=(ClientRequest const &req)
 {
+	(void) req;
 	return *this;
 }
 
@@ -66,7 +68,7 @@ void ClientRequest::SetBuffer(std::string buf)
 	if (_buffer)
 		delete[] _buffer;
 	_buffer = new char[buf.length()];
-	for (int i = 0; i < buf.length(); ++i)
+	for (unsigned int i = 0; i < buf.length(); ++i)
 		_buffer[i] = buf[i];
 	_offset = 0;
 	_size = buf.length();

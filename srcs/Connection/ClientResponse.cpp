@@ -21,6 +21,7 @@ ClientResponse::ClientResponse() :
 
 ClientResponse::ClientResponse(ClientResponse const &res)
 {
+	(void) res;
 }
 
 ClientResponse::~ClientResponse()
@@ -31,6 +32,7 @@ ClientResponse::~ClientResponse()
 
 ClientResponse &ClientResponse::operator=(ClientResponse const &res)
 {
+	(void) res;
 	return *this;
 }
 
@@ -54,7 +56,7 @@ void ClientResponse::Receive(char *buf, size_t count, unsigned long long int off
 
 	if (_offset + count >= _bufferSize)
 		expandBuffer(_offset + count);
-	for (int i = 0; i < count; i++)
+	for (unsigned int i = 0; i < count; i++)
 		_buffer[_offset + i] = buf[i];
 	_offset += count;
 	_buffer[_offset] = 0;
@@ -64,7 +66,7 @@ void ClientResponse::Receive(char *buf, size_t count, unsigned long long int off
 		/* header */
 		pos = strstr(_buffer, "\r\n\r\n");
 		parseHeader(pos - _buffer + 2);
-		for (int i = 0; i < _offset - (pos - _buffer + 4); i++)
+		for (unsigned int i = 0; i < _offset - (pos - _buffer + 4); i++)
 			_buffer[i] = _buffer[pos - _buffer + 4 + i];
 		_offset = _offset - (pos - _buffer + 4);
 		_stackedOffset = _offset;
@@ -152,7 +154,7 @@ void ClientResponse::expandBuffer(unsigned long long int offset)
 	while (!(newSize > offset))
 		newSize *= 2;
 	newBuffer = new char[newSize + 1];
-	for (int i = 0; i < _offset; i++)
+	for (unsigned long long int i = 0; i < _offset; i++)
 		newBuffer[i] = _buffer[i];
 	delete[] _buffer;
 	_buffer = newBuffer;

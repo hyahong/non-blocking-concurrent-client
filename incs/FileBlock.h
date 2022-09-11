@@ -23,6 +23,8 @@ public:
 	unsigned long long int GetStackedSize();
 
 private:
+	bool _isCached;
+
 	unsigned long long int _start;
 	unsigned long long int _end;
 

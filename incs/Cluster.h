@@ -1,6 +1,8 @@
 #ifndef _CLUSTER_H_
 # define _CLUSTER_H_
 
+# include <sstream>
+# include <iomanip>
 # include <queue>
 # include <fcntl.h>
 # include <sys/epoll.h>
@@ -94,8 +96,8 @@ private:
 	void cycle();
 
 	/* non-blocking */
-	bool epollRead(int epollFd, int socket);
-	bool epollWrite(int epollFd, int socket);
+	bool epollRead(int socket);
+	bool epollWrite(int socket);
 	void readDone(int epollFd, int socket);
 	void writeDone(int epollFd, int socket);
 

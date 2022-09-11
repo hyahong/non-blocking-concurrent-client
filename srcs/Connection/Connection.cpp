@@ -47,6 +47,7 @@ Connection::Connection(Mode mode) :
 
 Connection::Connection(Connection const &conn)
 {
+	(void) conn;
 }
 
 Connection::~Connection()
@@ -55,6 +56,7 @@ Connection::~Connection()
 
 Connection &Connection::operator=(Connection const &conn)
 {
+	(void) conn;
 	return *this;
 }
 
@@ -191,16 +193,14 @@ void Connection::parseURL(std::string url)
 
 void Connection::parseDNS()
 {
-	struct addrinfo hints = {
-		.ai_family = AF_INET
-	};
+	struct addrinfo hints;
 	struct addrinfo *result;
-	char buffer[32];
 
+	bzero(&hints, sizeof(hints));
+	hints.ai_family = AF_INET;
 	/* dns to ipv4 */
 	if (getaddrinfo(_request.GetHeader()["Host"].c_str(), NULL, &hints, &result))
 		throw InvalidNameServer();
-
 	_address.sin_addr.s_addr = ((struct sockaddr_in *) result->ai_addr)->sin_addr.s_addr;
 	freeaddrinfo(result);
 }

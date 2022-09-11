@@ -2,6 +2,7 @@
 
 /* coplien */
 FileBlock::FileBlock() :
+	_isCached(false),
 	_start(0),
 	_end(0),
 	_status(Status::WAITING)
@@ -10,6 +11,7 @@ FileBlock::FileBlock() :
 
 FileBlock::FileBlock(const FileBlock &fb)
 {
+	(void) fb;
 }
 
 FileBlock::~FileBlock()
@@ -18,6 +20,7 @@ FileBlock::~FileBlock()
 
 FileBlock &FileBlock::operator=(const FileBlock &fb)
 {
+	(void) fb;
 	return *this;
 }
 

@@ -2,9 +2,13 @@
 # define _TYPE_H_
 
 /* macro */
-# define RECEIVE_BUFFER_SIZE (1024) /* byte */
-# define FILE_BLOCK_SIZE 4//(20 * 1024 * 1024) /* byte */
-# define WORKER_NUMBER 10
+# define RECEIVE_BUFFER_SIZE (2048) /* byte */
+# define FILE_BLOCK_SIZE (20 * 1024 * 1024) /* byte */
+# define WORKER_NUMBER (10)
+
+# define PROGRESS_BAR_WIDTH (20)
+# define PROGRESS_COLUMN (4)
+# define PROGRESS_MARGIN (5)
 
 /* enum type */
 enum class Schema

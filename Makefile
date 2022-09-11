@@ -1,5 +1,5 @@
 CC			= g++
-CXXFLAGS	= #-Wall -Wextra -Werror
+CXXFLAGS	= -Wall -Wextra -Werror
 RM			= rm -rf
 
 INCS		= incs
