@@ -228,7 +228,7 @@ void Cluster::cycle(int &callcycle)
 	/* draw */
 	if (!(callcycle % 200))
 	{
-		print(false);
+		print();
 		callcycle = 0;
 	}
 }
@@ -243,7 +243,6 @@ void Cluster::print(bool bar)
 	//system("clear");
 	/* global */
 	std::cout << _stackedSize << "/" << _size << " (" << _stackedSize * 100 / _size << "%)" << std::endl << std::endl;
-	return ;
 	/* local */
 	for (unsigned long long int i = 0; i < _blockSize; i += PROGRESS_COLUMN)
 	{
@@ -285,7 +284,7 @@ void Cluster::print(bool bar)
 					std::cout << "░";
 				std::cout << std::setw(PROGRESS_MARGIN) << "";
 			}
-			std::cout << std::endl << std::endl;
+			std::cout << std::endl;
 		}
 	}
 }
@@ -293,7 +292,6 @@ void Cluster::print(bool bar)
 /* socket I/O */
 bool Cluster::epollRead(int socket)
 {
-	std::cout << "r";
 	worker_t *worker;
 	char buf[RECEIVE_BUFFER_SIZE + 1];
 	int bytes;
@@ -347,7 +345,6 @@ bool Cluster::epollRead(int socket)
 
 bool Cluster::epollWrite(int socket)
 {
-	std::cout << "write" << std::endl;
 	worker_t *worker;
 	int bytes;
 	int error;

@@ -4,7 +4,7 @@
 /* macro */
 # define RECEIVE_BUFFER_SIZE (4096) /* byte */
 # define FILE_BLOCK_SIZE_ ((unsigned long long int) 5 * 1024 * 1024 * 1024) /* byte */
-# define FILE_BLOCK_SIZE (40 * 1024 * 1024) /* byte */
+# define FILE_BLOCK_SIZE (20 * 1024 * 1024) /* byte */
 # define WORKER_NUMBER (1)
 
 # define PROGRESS_BAR_WIDTH (20)
