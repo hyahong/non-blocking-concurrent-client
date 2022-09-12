@@ -9,6 +9,7 @@
 # include <arpa/inet.h>
 # include <netdb.h>
 # include <errno.h>
+# include "TLS.h"
 # include "TLSSocket.h"
 # include "ClientRequest.h"
 # include "ClientResponse.h"
@@ -31,10 +32,6 @@ public:
 	};
 
 	class ConnectionFailure : public std::exception {
-		virtual const char *what() const throw();
-	};
-
-	class CTXAllocationFailure : public std::exception {
 		virtual const char *what() const throw();
 	};
 

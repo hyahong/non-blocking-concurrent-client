@@ -9,10 +9,6 @@ const char *Connection::ConnectionFailure::what() const throw() {
 	return ("Connection: Failed to connect to server");
 }
 
-const char *Connection::CTXAllocationFailure::what() const throw() {
-	return ("Connection: Failed to allocate CTX");
-}
-
 const char *Connection::SSLAllocationFailure::what() const throw() {
 	return ("Connection: Failed to allocate SSL");
 }
@@ -122,8 +118,6 @@ void Connection::Close()
 			free(_tls._issuer);
 		if (_tls._ssl)
 			SSL_free(_tls._ssl);
-		if (_tls._ctx)
-			SSL_CTX_free(_tls._ctx);
 	}
 }
 
@@ -211,14 +205,8 @@ void Connection::useTLS()
 	int error;
 	int sslError;
 
-	SSL_library_init();
-	SSL_load_error_strings();
 	/* ssl base */
-	_tls._method = const_cast<SSL_METHOD *>(TLS_client_method());
-	_tls._ctx = SSL_CTX_new(_tls._method);
-	if (!_tls._ctx)
-		throw CTXAllocationFailure();
-	_tls._ssl = SSL_new(_tls._ctx);
+	_tls._ssl = SSL_new(TLS::GetInstance()._ctx);
 	if (!_tls._ssl)
 		throw SSLAllocationFailure();
 	if (!SSL_set_tlsext_host_name(_tls._ssl, _request.GetHeader()["Host"].c_str()))

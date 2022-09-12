@@ -226,9 +226,9 @@ void Cluster::cycle(int &callcycle)
 	for (unsigned long long int i = 0; i < _blockSize; ++i)
 		_stackedSize += _blocks[i].GetStackedSize();
 	/* draw */
-	if (!(callcycle % 100))
+	if (!(callcycle % 200))
 	{
-		print();
+		print(false);
 		callcycle = 0;
 	}
 }
@@ -240,9 +240,10 @@ void Cluster::print(bool bar)
 	int barPercent;
 
 	/* system */
-	system("clear");
+	//system("clear");
 	/* global */
 	std::cout << _stackedSize << "/" << _size << " (" << _stackedSize * 100 / _size << "%)" << std::endl << std::endl;
+	return ;
 	/* local */
 	for (unsigned long long int i = 0; i < _blockSize; i += PROGRESS_COLUMN)
 	{
@@ -292,6 +293,7 @@ void Cluster::print(bool bar)
 /* socket I/O */
 bool Cluster::epollRead(int socket)
 {
+	std::cout << "r";
 	worker_t *worker;
 	char buf[RECEIVE_BUFFER_SIZE + 1];
 	int bytes;
@@ -314,6 +316,7 @@ bool Cluster::epollRead(int socket)
 		else if(error == SSL_ERROR_ZERO_RETURN)
 		{
 			/* disconnected by server */
+			std::cout << "disconnected by server" << std::endl;
 			return false;
 		}
 		else
@@ -344,6 +347,7 @@ bool Cluster::epollRead(int socket)
 
 bool Cluster::epollWrite(int socket)
 {
+	std::cout << "write" << std::endl;
 	worker_t *worker;
 	int bytes;
 	int error;
@@ -478,7 +482,7 @@ void Cluster::run()
 	/* non-blocking I/O */
 	while (_stackedSize != _size)
 	{
-		ready = epoll_wait(epollFd, events, _workerSize, -1);
+		ready = epoll_wait(epollFd, events, _workerSize, 100);
 		if (ready < 0)
 		{
 			if (ready == EINTR)
