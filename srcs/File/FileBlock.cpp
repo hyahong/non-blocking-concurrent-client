@@ -5,6 +5,7 @@ FileBlock::FileBlock() :
 	_isCached(false),
 	_start(0),
 	_end(0),
+	_stackedSize(0),
 	_status(Status::WAITING)
 {
 }

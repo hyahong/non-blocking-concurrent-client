@@ -251,9 +251,9 @@ void Cluster::print(bool bar)
 			str.str("");
 			str.clear();
 			blockSize = _blocks[r]._end - _blocks[r]._start + 1;
-			if (blockSize > 1024 * 1024 * 1024)
+			if (blockSize > 1024 * 1024)
 				str << _blocks[r]._stackedSize / 1024 / 1024 << "/" << blockSize / 1024 / 1024 << " ";
-			else if (blockSize > 1024 * 1024)
+			else if (blockSize > 1024)
 				str << _blocks[r]._stackedSize / 1024 << "/" << blockSize / 1024 << " ";
 			else
 				str << _blocks[r]._stackedSize << "/" << blockSize << " ";
@@ -435,7 +435,8 @@ void Cluster::writeDone(int epollFd, int socket)
 
 void Cluster::run()
 {
-	clock_t start;
+	std::chrono::system_clock::time_point startTime, endTime;
+	std::chrono::milliseconds diffMsec;
 	int callcycle;
 	struct epoll_event *events;
 	int epollFd;
@@ -472,7 +473,7 @@ void Cluster::run()
 	}
 	/* start */
 	callcycle = 0;
-    start = clock();
+    startTime = std::chrono::system_clock::now();
 	isRead = false;
 	/* non-blocking I/O */
 	while (_stackedSize != _size)
@@ -499,6 +500,8 @@ void Cluster::run()
 	}
 
 	print();
-	std::cout << "time: " << (double) (clock() - start) / CLOCKS_PER_SEC << " s" << std::endl;
+    endTime = std::chrono::system_clock::now();
+	diffMsec = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+	std::cout << "time: " << (double) diffMsec.count() / 1000 << " s" << std::endl;
 	delete[] events;
 }
