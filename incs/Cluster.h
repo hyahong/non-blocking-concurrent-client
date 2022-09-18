@@ -45,6 +45,10 @@ public:
 		virtual const char *what() const throw();
 	};
 
+	class EpollWaitFailure : public std::exception {
+		virtual const char *what() const throw();
+	};
+
 	class EpollCtlFailure : public std::exception {
 		virtual const char *what() const throw();
 	};
@@ -71,6 +75,7 @@ private:
 
 	/* member */
 	int _file;
+	int _epoll;
 
 	std::string _url;
 	std::string _path;
@@ -92,16 +97,19 @@ private:
 	void useTaskQueue();
 	void makeWorker();
 
+	bool assign(worker_t *worker); 
+	void failure(worker_t *worker);
+
 	worker_t *findWorker(int socket);
 
-	void cycle(int &callcycle);
+	void cycle(unsigned long long int &threshold);
 	void print(bool bar = true);
 
 	/* non-blocking */
 	bool epollRead(int socket);
 	bool epollWrite(int socket);
-	void readDone(int epollFd, int socket);
-	void writeDone(int epollFd, int socket);
+	void readDone(int socket);
+	void writeDone(int socket);
 
 	void run();
 };

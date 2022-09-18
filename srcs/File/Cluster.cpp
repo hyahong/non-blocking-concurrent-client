@@ -25,6 +25,10 @@ const char *Cluster::EpollCreateFailure::what() const throw() {
 	return ("Cluster: Failed to create epoll file descriptor");
 }
 
+const char *Cluster::EpollWaitFailure::what() const throw() {
+	return ("Cluster: Failed to wait epoll");
+}
+
 const char *Cluster::EpollCtlFailure::what() const throw() {
 	return ("Cluster: Failed to control epoll file descriptor");
 }
@@ -209,6 +213,45 @@ void Cluster::makeWorker()
 	}
 }
 
+bool Cluster::assign(worker_t *worker)
+{
+	if (_tasks.empty())
+		return false;
+	worker->Info = _tasks.front();
+	_tasks.front()->_status = Status::RUNNING;
+	_tasks.pop();
+	worker->Conn.Reset();
+	worker->Conn.GetRequest().SetRange(worker->Info->GetStart(), worker->Info->GetEnd());
+	worker->Conn.GetRequest().SetBuffer(worker->Conn.GetRequest().GetStringHeader());
+	return true;
+}
+
+void Cluster::failure(worker_t *worker)
+{
+	struct epoll_event event;
+
+	/* fail */
+	worker->Info->_status = Status::FAILED;
+	/* remove from epoll */
+	bzero(&event, sizeof(event));
+	event.data.fd = worker->Conn.GetSocket();
+	if (epoll_ctl(_epoll, EPOLL_CTL_DEL, event.data.fd, &event) < 0)
+		throw EpollCtlFailure();
+	/* re connection */
+	worker->Conn.Close();
+	worker->Conn.Connect();
+	/* add failed block to queue */
+	_tasks.push(worker->Info);
+	/* new registration on epoll */
+	bzero(&event, sizeof(event));
+	event.data.fd = worker->Conn.GetSocket();
+	event.events = EPOLLOUT | EPOLLERR | EPOLLHUP;
+	if (epoll_ctl(_epoll, EPOLL_CTL_ADD, event.data.fd, &event) < 0)
+		throw EpollCtlFailure();
+	/* assign (can't fail) */
+	assign(worker);
+}
+
 Cluster::worker_t *Cluster::findWorker(int socket)
 {
 	for (unsigned int i = 0; i < _workerSize; ++i)
@@ -219,17 +262,17 @@ Cluster::worker_t *Cluster::findWorker(int socket)
 	return NULL;
 }
 
-void Cluster::cycle(int &callcycle)
+void Cluster::cycle(unsigned long long int &threshold)
 {
 	_stackedSize = 0;
 	/* global */
 	for (unsigned long long int i = 0; i < _blockSize; ++i)
 		_stackedSize += _blocks[i].GetStackedSize();
 	/* draw */
-	if (!(callcycle % 200))
+	if (_stackedSize > threshold)
 	{
 		print();
-		callcycle = 0;
+		threshold = _stackedSize + 1240 * 1024;
 	}
 }
 
@@ -240,7 +283,7 @@ void Cluster::print(bool bar)
 	int barPercent;
 
 	/* system */
-	//system("clear");
+	system("clear");
 	/* global */
 	std::cout << _stackedSize << "/" << _size << " (" << _stackedSize * 100 / _size << "%)" << std::endl << std::endl;
 	/* local */
@@ -251,12 +294,15 @@ void Cluster::print(bool bar)
 			str.str("");
 			str.clear();
 			blockSize = _blocks[r]._end - _blocks[r]._start + 1;
-			if (blockSize > 1024 * 1024)
-				str << _blocks[r]._stackedSize / 1024 / 1024 << "/" << blockSize / 1024 / 1024 << " ";
+			str << (_blocks[r]._isCached ? "(C) " : "");
+			if (blockSize > 1024 * 1024 * 1024)
+				str << _blocks[r]._stackedSize / 1024 / 1024 / 1024 << "/" << blockSize / 1024 / 1024 / 1024 << " GB ";
+			else if (blockSize > 1024 * 1024)
+				str << _blocks[r]._stackedSize / 1024 / 1024 << "/" << blockSize / 1024 / 1024 << " MB ";
 			else if (blockSize > 1024)
-				str << _blocks[r]._stackedSize / 1024 << "/" << blockSize / 1024 << " ";
+				str << _blocks[r]._stackedSize / 1024 << "/" << blockSize / 1024 << " KB ";
 			else
-				str << _blocks[r]._stackedSize << "/" << blockSize << " ";
+				str << _blocks[r]._stackedSize << "/" << blockSize << " B ";
 
 			if (_blocks[r]._status == Status::WAITING)
 				str << "WAITING";
@@ -266,7 +312,6 @@ void Cluster::print(bool bar)
 				str << "DONE";
 			else if (_blocks[r]._status == Status::FAILED)
 				str << "FAILED";
-			str << (_blocks[r]._isCached ? "(C)" : "");
 
 			std::cout << std::setw(PROGRESS_BAR_WIDTH) << str.str();
 			std::cout << std::setw(PROGRESS_MARGIN) << "";
@@ -302,6 +347,13 @@ bool Cluster::epollRead(int socket)
 		throw UndefinedSocket();
 	/* read */
 	bytes = worker->Conn.read(buf, sizeof(buf) - 1);
+	/* failure testcase
+	if (!(bytes % 123))
+	{
+		failure(worker);
+		return false;
+	}
+	*/
 	if (bytes <= 0)
 	{
 		if (worker->Conn.GetSchema() == Schema::HTTP)
@@ -313,17 +365,11 @@ bool Cluster::epollRead(int socket)
 			return false;
 		else if(error == SSL_ERROR_ZERO_RETURN)
 		{
-			/* disconnected by server */
-			std::cout << "disconnected by server" << std::endl;
+			failure(worker);
 			return false;
 		}
 		else
-		{
-			perror("write");
-			std::cout << "read: " << error << std::endl;
-			//return false;
 			throw ReadFailure();
-		}
 	}	
 	/* receive */
 	worker->Conn.GetResponse().Receive(buf, bytes, worker->Info->GetStart());
@@ -332,13 +378,12 @@ bool Cluster::epollRead(int socket)
 	{
 		if (worker->Conn.GetResponse().GetCode().compare("206"))
 		{
-			/* status code is invalid */
-			std::cout << "?" << std::endl;
+			failure(worker); /* is valid type? */
+			return false;
 		}
 		if (!worker->Conn.GetResponse().GetHeader()["X-Cache"].compare("Hit from cloudfront"))
 			worker->Info->_isCached = true;
-		if (worker->Conn.GetResponse().IsBodyCompleted())
-			return true;
+		return worker->Conn.GetResponse().IsBodyCompleted();
 	}
 	return false;
 }
@@ -365,24 +410,17 @@ bool Cluster::epollWrite(int socket)
 			return false;
 		else if(error == SSL_ERROR_ZERO_RETURN)
 		{
-			/* disconnected by server */
+			failure(worker);
 			return false;
 		}
 		else
-		{
-			perror("write");
-			std::cout << "write: " << error << std::endl;
-			///return false;
 			throw WriteFailure();
-		}
 	}
 	worker->Conn.GetRequest().Send(bytes);
-	if (worker->Conn.GetRequest().IsWriteDone())
-		return true;
-	return false;
+	return worker->Conn.GetRequest().IsWriteDone();
 }
 
-void Cluster::readDone(int epollFd, int socket)
+void Cluster::readDone(int socket)
 {
 	struct epoll_event event;
 	worker_t *worker;
@@ -395,53 +433,35 @@ void Cluster::readDone(int epollFd, int socket)
 	bzero(&event, sizeof(event));
 	event.data.fd = socket;
 	event.events = EPOLLOUT | EPOLLERR | EPOLLHUP;
-	if (epoll_ctl(epollFd, EPOLL_CTL_MOD, event.data.fd, &event) < 0)
-	{
-		perror("Epoll ctl: ");
+	if (epoll_ctl(_epoll, EPOLL_CTL_MOD, event.data.fd, &event) < 0)
 		throw EpollCtlFailure();
-	}
 	/* set task */
 	worker->Info->_status = Status::DONE;
-	if (_tasks.empty())
+	/* new */
+	if (!assign(worker))
 	{
-		if (epoll_ctl(epollFd, EPOLL_CTL_DEL, event.data.fd, &event) < 0)
-		{
-			perror("Epoll ctl: ");
+		if (epoll_ctl(_epoll, EPOLL_CTL_DEL, event.data.fd, &event) < 0)
 			throw EpollCtlFailure();
-		}
-		//std::cout << "stop worker" << std::endl;
-		return ;
 	}
-	worker->Info = _tasks.front();
-	_tasks.front()->_status = Status::RUNNING;
-	_tasks.pop();
-	worker->Conn.GetResponse().Reset();
-	worker->Conn.GetRequest().SetRange(worker->Info->GetStart(), worker->Info->GetEnd());
-	worker->Conn.GetRequest().SetBuffer(worker->Conn.GetRequest().GetStringHeader());
 }
 
-void Cluster::writeDone(int epollFd, int socket)
+void Cluster::writeDone(int socket)
 {
 	struct epoll_event event;
 
 	bzero(&event, sizeof(event));
 	event.data.fd = socket;
 	event.events = EPOLLIN | EPOLLERR | EPOLLHUP;
-	if (epoll_ctl(epollFd, EPOLL_CTL_MOD, event.data.fd, &event) < 0)
-	{
-		perror("Epoll ctl: ");
+	if (epoll_ctl(_epoll, EPOLL_CTL_MOD, event.data.fd, &event) < 0)
 		throw EpollCtlFailure();
-	}
 }
 
 void Cluster::run()
 {
 	std::chrono::system_clock::time_point startTime, endTime;
 	std::chrono::milliseconds diffMsec;
-	int callcycle;
+	unsigned long long int threshold;
 	struct epoll_event *events;
-	int epollFd;
-	bool isRead;
 	int ready;
 
 	/* worker (connection) */
@@ -452,12 +472,9 @@ void Cluster::run()
 	bzero(events, (_workerSize + 1) * sizeof(struct epoll_event));
 
 	/* epoll */
-	epollFd = epoll_create(_workerSize);
-    if (epollFd < 0)
-	{
-        perror("Epoll create");
+	_epoll = epoll_create(_workerSize);
+    if (_epoll < 0)
 		throw EpollCreateFailure();
-    }
 	for (unsigned int i = 0; i < _workerSize; ++i)
 	{
 		struct epoll_event event;
@@ -466,37 +483,32 @@ void Cluster::run()
 		event.data.fd = _workers[i].Conn.GetSocket();
 		event.events = EPOLLOUT | EPOLLERR | EPOLLHUP;
 
-		if (epoll_ctl(epollFd, EPOLL_CTL_ADD, event.data.fd, &event) < 0)
-		{
-			perror("Epoll ctl");
+		if (epoll_ctl(_epoll, EPOLL_CTL_ADD, event.data.fd, &event) < 0)
 			throw EpollCtlFailure();
-		}
 	}
 	/* start */
-	callcycle = 0;
+	threshold = 0;
     startTime = std::chrono::system_clock::now();
-	isRead = false;
 	/* non-blocking I/O */
 	while (_stackedSize != _size)
 	{
-		ready = epoll_wait(epollFd, events, _workerSize, 100);
+		ready = epoll_wait(_epoll, events, _workerSize, 100);
 		if (ready < 0)
 		{
 			if (ready == EINTR)
 				continue;
-			throw EpollCtlFailure(); /*need changes */
+			throw EpollWaitFailure();
 		}
 		/* handles error, read, write in order */
 		for (int i = 0; i < ready; ++i)
 		{
 			if ((events[i].events & EPOLLERR) || (events[i].events & EPOLLHUP) || (!(events[i].events & (EPOLLIN | EPOLLOUT))))
 				continue;
-			else if (events->events & (EPOLLIN | EPOLLHUP) && (epollRead(events[i].data.fd) || !(isRead = true)))
-				readDone(epollFd, events[i].data.fd);
+			else if (events->events & EPOLLIN && (epollRead(events[i].data.fd)))
+				readDone(events[i].data.fd);
 			else if (events->events & EPOLLOUT && epollWrite(events[i].data.fd))
-				writeDone(epollFd, events[i].data.fd);
-			if (isRead)
-				cycle(++callcycle);
+				writeDone(events[i].data.fd);
+			cycle(threshold);
 		}
 	}
 

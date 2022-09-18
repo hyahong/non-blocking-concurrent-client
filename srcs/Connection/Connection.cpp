@@ -57,6 +57,11 @@ Connection &Connection::operator=(Connection const &conn)
 }
 
 /* public */
+void Connection::Reset()
+{
+	_response.Reset();
+}
+
 void Connection::SetCluster(Cluster &cluster)
 {
 	_cluster = &cluster;
@@ -176,6 +181,7 @@ void Connection::parseURL(std::string url)
 	{
 		_schema = !url.compare(cursor, strlen("http://"), "http://") ? Schema::HTTP : Schema::HTTPS;
 		cursor += _schema == Schema::HTTP ? strlen("http://") : strlen("https://");
+		_schema = Schema::HTTP; /* TODO */
 	}
 	/* get schema */
 	_request.GetHeader()["Host"] = url.substr(cursor, url.find("/", cursor) - cursor);
@@ -224,10 +230,7 @@ void Connection::useTLS()
 			if (sslError == SSL_ERROR_WANT_READ || sslError == SSL_ERROR_WANT_WRITE || sslError == SSL_ERROR_WANT_X509_LOOKUP)
                 continue;
             else
-			{
-                perror("SSL: ");
 				throw ConnectSSLFailure();
-            }
         }
         else
             break;

@@ -56,6 +56,8 @@ public:
 	};
 
 	/* function */
+	void Reset();
+
 	void SetCluster(Cluster &cluster);
 	void SetMode(Mode mode);
 	Cluster &GetCluster();
