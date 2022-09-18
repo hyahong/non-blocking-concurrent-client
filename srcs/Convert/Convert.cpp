@@ -33,6 +33,12 @@ bool Convert::Parser(int argc, char *argv[])
 	_argument.clear();
 	for (int i = 1; i < argc; ++i)
 	{
+		if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help"))
+		{
+			/* help */
+			help();
+			return false;
+		}
 		if (!strncmp(argv[i], "-", 1) || !strncmp(argv[i], "--", 2))
 		{
 			isValid = false;
