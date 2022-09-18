@@ -7,6 +7,7 @@
 # include <queue>
 # include <fcntl.h>
 # include <sys/epoll.h>
+# include "Convert.h"
 # include "Connection.h"
 # include "FileBlock.h"
 
@@ -37,6 +38,10 @@ public:
 		virtual const char *what() const throw();
 	};
 
+	class NotSupportRangeRequest : public std::exception {
+		virtual const char *what() const throw();
+	};
+
 	class FailedToRequest : public std::exception {
 		virtual const char *what() const throw();
 	};
@@ -58,12 +63,17 @@ public:
 	};
 
 	/* function */
-	void Download(std::string url, std::string path);
+	void Download(std::string url = "", std::string path = "");
+	void Option(Convert &convert);
 
 	/* I/O */
 	void flush(const char *buf, size_t count, off_t offset);
 
 private:
+	/* alternative macro */
+	unsigned long long int _fileblocksize;
+	unsigned int _workernumber;
+
 	/* struct */
 	struct _worker
 	{
@@ -77,6 +87,7 @@ private:
 	int _file;
 	int _epoll;
 
+	std::string _name;
 	std::string _url;
 	std::string _path;
 

@@ -1,15 +1,20 @@
 #include <iostream>
+#include "Convert.h"
 #include "Cluster.h"
 
-int		main(void)
+int		main(int argc, char *argv[])
 {
+	Convert convert;
 	Cluster cluster;
 
 	try {
-		cluster.Download("http://d1f0m5hlxy4kyb.cloudfront.net/debian-11.4.0-amd64-netinst.iso", "target.iso");
-		//cluster.Download("https://originbucket225.s3.ap-northeast-2.amazonaws.com/debian-11.4.0-amd64-netinst.iso", "target.iso");
+		if (!convert.Parser(argc, argv))
+			return 0;
+		cluster.Option(convert);
+		cluster.Download();
 	}
 	catch (std::exception &e) {
+		std::cout << "error occurs at: ";
 		std::cout << e.what() << std::endl;
 	}
 	return 0;

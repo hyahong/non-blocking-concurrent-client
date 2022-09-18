@@ -35,6 +35,11 @@ ClientRequest &ClientRequest::operator=(ClientRequest const &req)
 }
 
 /* public */
+std::string ClientRequest::GetPath()
+{
+	return _path;
+}
+
 std::map<std::string, std::string> &ClientRequest::GetHeader()
 {
 	return _header;

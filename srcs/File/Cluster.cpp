@@ -17,6 +17,10 @@ const char *Cluster::ReadFailure::what() const throw() {
 	return ("Cluster: read failed");
 }
 
+const char *Cluster::NotSupportRangeRequest::what() const throw() {
+	return ("Cluster: Server does not support range requests");
+}
+
 const char *Cluster::FailedToRequest::what() const throw() {
 	return ("Cluster: Failed to request");
 }
@@ -39,6 +43,9 @@ const char *Cluster::UndefinedSocket::what() const throw() {
 
 /* coplien */
 Cluster::Cluster() :
+	_fileblocksize(FILE_BLOCK_SIZE_DEFAULT),
+	_workernumber(WORKER_NUMBER_DEFAULT),
+	_name(""),
 	_url(""),
 	_path(""),
 	_blocks(nullptr),
@@ -46,7 +53,7 @@ Cluster::Cluster() :
 	_size(0),
 	_stackedSize(0),
 	_workers(nullptr),
-	_workerSize(0)
+	_workerSize(0)	
 {
 }
 
@@ -78,8 +85,6 @@ void Cluster::Download(std::string url, std::string path)
 	Connection conn;
 
 	/* clear */
-	_url = "";
-	_path = "";
 	if (_blocks)
 		delete[] _blocks;
 	_blocks = nullptr;
@@ -92,18 +97,26 @@ void Cluster::Download(std::string url, std::string path)
 	_workerSize = 0;
 
 	/* init */
-	_url = url;
-	_path = path;
-
-	/* open */
-	_file = ::open(path.c_str(), O_WRONLY | O_CREAT, 0666);
-	if (_file < 0)
-		throw FileOpenFailure();
+	if (url.compare(""))
+		_url = url;
+	if (path.compare(""))
+		_path = path;
+	
 	/* get file info */
 	requestHead(conn);
 	if (conn.GetResponse().GetCode().compare("200"))
 		throw FailedToRequest();
-// dose file server support range request?
+	_name = conn.GetRequest().GetPath().substr(1);
+	/* does server support range reqeust */
+	if (conn.GetResponse().GetHeader()["Accept-Ranges"].find("bytes") == std::string::npos)
+		throw NotSupportRangeRequest();
+	/* default path */
+	if (!_path.compare(""))
+		_path = conn.GetRequest().GetPath().substr(1);
+	/* open */
+	_file = ::open(_path.c_str(), O_WRONLY | O_CREAT, 0666);
+	if (_file < 0)
+		throw FileOpenFailure();
 	_size = std::strtoull(conn.GetResponse().GetHeader()["Content-Length"].c_str(), NULL, 0);
 	/* file to splited block */
 	splitFileToBlocks();
@@ -111,6 +124,38 @@ void Cluster::Download(std::string url, std::string path)
 	useTaskQueue();
 	/* non-blocking run */
 	run();
+}
+
+void Cluster::Option(Convert &convert)
+{
+	if (convert._option.find("-w") != convert._option.end())
+	{
+		_workernumber = strtoul(convert._option["-w"].c_str(), NULL, 10);
+	}
+	if (convert._option.find("--worker") != convert._option.end())
+	{
+		_workernumber = strtoul(convert._option["--worker"].c_str(), NULL, 10);
+	}
+
+	if (convert._option.find("-d") != convert._option.end())
+	{
+		_path = convert._option["-d"];
+	}
+	if (convert._option.find("--destination") != convert._option.end())
+	{
+		_path = convert._option["--destination"];
+	}
+
+	if (convert._option.find("-s") != convert._option.end())
+	{
+		_fileblocksize = strtoull(convert._option["-s"].c_str(), NULL, 10);
+	}
+	if (convert._option.find("--size") != convert._option.end())
+	{
+		_fileblocksize = strtoull(convert._option["--size"].c_str(), NULL, 10);
+	}
+
+	_url = convert._argument[0];
 }
 
 /* I/O */
@@ -167,16 +212,16 @@ void Cluster::splitFileToBlocks()
 {
 	unsigned long long int block;
 
-	block = _size / FILE_BLOCK_SIZE;
-	if (_size % FILE_BLOCK_SIZE > 0)
+	block = _size / _fileblocksize;
+	if (_size % _fileblocksize > 0)
 		++block;
 	_blocks = new FileBlock[block];
 	_blockSize = block;
 	_blocks[0]._start = 0;
 	for (unsigned long long int i = 0; i < block; ++i)
 	{
-		_blocks[i]._start = i * FILE_BLOCK_SIZE;
-		_blocks[i]._end = (i + 1) * FILE_BLOCK_SIZE - 1;
+		_blocks[i]._start = i * _fileblocksize;
+		_blocks[i]._end = (i + 1) * _fileblocksize - 1;
 	}
 	_blocks[block - 1]._end = _size - 1;
 }
@@ -195,7 +240,7 @@ void Cluster::useTaskQueue()
 
 void Cluster::makeWorker()
 {
-	_workerSize = WORKER_NUMBER > _blockSize ? _blockSize : WORKER_NUMBER;
+	_workerSize = _workernumber > _blockSize ? _blockSize : _workernumber;
 	_workers = new worker_t[_workerSize];
 	for (unsigned int i = 0; i < _workerSize; ++i)
 	{
@@ -278,6 +323,7 @@ void Cluster::cycle(unsigned long long int &threshold)
 
 void Cluster::print(bool bar)
 {
+	return;
 	std::ostringstream str;
 	unsigned long long int blockSize;
 	int barPercent;
@@ -285,6 +331,7 @@ void Cluster::print(bool bar)
 	/* system */
 	system("clear");
 	/* global */
+	std::cout << _name << " ";
 	std::cout << _stackedSize << "/" << _size << " (" << _stackedSize * 100 / _size << "%)" << std::endl << std::endl;
 	/* local */
 	for (unsigned long long int i = 0; i < _blockSize; i += PROGRESS_COLUMN)
