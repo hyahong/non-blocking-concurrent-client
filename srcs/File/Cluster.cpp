@@ -561,6 +561,6 @@ void Cluster::run()
 	print();
     endTime = std::chrono::system_clock::now();
 	diffMsec = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-	std::cout << "time: " << (double) diffMsec.count() / 1000 << " s" << std::endl;
+	std::cout << std::endl << "time: " << (double) diffMsec.count() / 1000 << " s" << std::endl;
 	delete[] events;
 }

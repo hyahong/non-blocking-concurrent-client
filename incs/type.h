@@ -6,9 +6,9 @@
 # define FILE_BLOCK_SIZE_DEFAULT (20 * 1024 * 1024) /* byte */
 # define WORKER_NUMBER_DEFAULT (10)
 
-# define PROGRESS_BAR_WIDTH (20)
-# define PROGRESS_COLUMN (8)
-# define PROGRESS_MARGIN (5)
+# define PROGRESS_BAR_WIDTH (22)
+# define PROGRESS_COLUMN (6)
+# define PROGRESS_MARGIN (6)
 
 /* enum type */
 enum class Schema
