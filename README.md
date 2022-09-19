@@ -49,7 +49,7 @@ $> Get-FileHash -Path .\debian-11.4.0-amd64-netinst.iso -Algorithm md5
 
 Algorithm       Hash                                                                   Path
 ---------       ----                                                                   ----
-MD5             D78B390D70E4A858B41D6BDFDD4B27A0                                       E:\debian-11.4.0-amd...
+MD5             D78B390D70E4A858B41D6BDFDD4B27A0                                       E:\debian-11.4.0...
 ```
 
 `Downloaded File (in Ubuntu)`
