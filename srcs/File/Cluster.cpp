@@ -323,7 +323,6 @@ void Cluster::cycle(unsigned long long int &threshold)
 
 void Cluster::print(bool bar)
 {
-	return;
 	std::ostringstream str;
 	unsigned long long int blockSize;
 	int barPercent;
@@ -534,7 +533,7 @@ void Cluster::run()
 			throw EpollCtlFailure();
 	}
 	/* start */
-	threshold = 0;
+	threshold = 1;
     startTime = std::chrono::system_clock::now();
 	/* non-blocking I/O */
 	while (_stackedSize != _size)
