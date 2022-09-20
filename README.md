@@ -29,6 +29,16 @@ DESCRIPTION
          specifies the size of one file block. default is 20971520 (20 MB).
 ```
 
+If the link is complex, you may need to enclose the URL in double quotes.
+```
+$> ./client "https://githubnonblockingconcurrent.complex.com/hasquery?image=6&fname=https%3A%2com.net/pong"
+```
+
+If the original file name is not available in Linux, you must specify the file name using the "-d" option.
+```
+$> ./client -d pong.png "https://githubnonblockingconcurrent.net/uery?ime=https%3A%2com.net/%2https%dbpong.tar.gz"
+```
+
 <br/>
 
 ## Demo
