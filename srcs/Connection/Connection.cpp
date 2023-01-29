@@ -181,7 +181,6 @@ void Connection::parseURL(std::string url)
 	{
 		_schema = !url.compare(cursor, strlen("http://"), "http://") ? Schema::HTTP : Schema::HTTPS;
 		cursor += _schema == Schema::HTTP ? strlen("http://") : strlen("https://");
-		_schema = Schema::HTTP; /* TODO */
 	}
 	/* get schema */
 	_request.GetHeader()["Host"] = url.substr(cursor, url.find("/", cursor) - cursor);

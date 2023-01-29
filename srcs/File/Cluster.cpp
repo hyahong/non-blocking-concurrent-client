@@ -550,9 +550,9 @@ void Cluster::run()
 		{
 			if ((events[i].events & EPOLLERR) || (events[i].events & EPOLLHUP) || (!(events[i].events & (EPOLLIN | EPOLLOUT))))
 				continue;
-			else if (events->events & EPOLLIN && (epollRead(events[i].data.fd)))
+			else if (events[i].events & EPOLLIN && (epollRead(events[i].data.fd)))
 				readDone(events[i].data.fd);
-			else if (events->events & EPOLLOUT && epollWrite(events[i].data.fd))
+			else if (events[i].events & EPOLLOUT && epollWrite(events[i].data.fd))
 				writeDone(events[i].data.fd);
 			cycle(threshold);
 		}
